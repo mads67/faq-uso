@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
-const BUCKET = "documentos-faq";
+const BUCKET = "faq-documentos";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     if (uploadErr) throw uploadErr;
 
-    const { error: dbErr } = await supabaseAdmin.from("documentos").insert({
+    const { error: dbErr } = await supabaseAdmin.from("faq_documentos").insert({
       respuesta_id: respuestaId,
       nombre_archivo: file.name,
       storage_path: path,
