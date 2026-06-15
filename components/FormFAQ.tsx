@@ -220,13 +220,6 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
 
   // ── Archivos ──
   const allowedExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx"];
-  const allowedMimes = [
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  ];
 
   const addFiles = useCallback((files: FileList | File[]) => {
     setError("");
@@ -325,20 +318,58 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
 
       const totalArchivos = archivos.length;
       let done = 0;
+
       if (totalArchivos > 0) {
         for (const item of archivos) {
           setProgLabel(`Subiendo ${done + 1} de ${totalArchivos}: ${item.file.name}`);
           setArchivos(a => a.map(f => f.id === item.id ? { ...f, status: "uploading" } : f));
-          const fd = new FormData();
-          fd.append("file", item.file);
-          fd.append("respuesta_id", data.id);
-          fd.append("indicaciones", indicaciones);
-          const r = await fetch("/api/upload", { method: "POST", body: fd });
+
+          let uploadOk = false;
+          try {
+            // Paso 1: pide la signed URL al servidor (solo metadatos, sin el archivo)
+            const r = await fetch("/api/upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fileName: item.file.name,
+                fileType: item.file.type,
+                fileSize: item.file.size,
+                respuestaId: data.id,
+              }),
+            });
+            if (!r.ok) throw new Error((await r.json()).error ?? "Error al obtener URL");
+            const { signedUrl, path } = await r.json();
+
+            // Paso 2: sube el archivo directo a Supabase desde el browser (sin pasar por Vercel)
+            const putRes = await fetch(signedUrl, {
+              method: "PUT",
+              headers: { "Content-Type": item.file.type },
+              body: item.file,
+            });
+            if (!putRes.ok) throw new Error("Fallo al subir el archivo a storage");
+
+            // Paso 3: confirma el registro en BD solo si el upload fue exitoso
+            const confirmRes = await fetch("/api/upload/confirm", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                respuestaId: data.id,
+                fileName: item.file.name,
+                storagePath: path,
+                indicaciones,
+              }),
+            });
+            if (!confirmRes.ok) throw new Error((await confirmRes.json()).error ?? "Error al confirmar");
+
+            uploadOk = true;
+          } catch (e) {
+            console.error("Upload error:", e);
+          }
+
           setArchivos(a => a.map(f => f.id === item.id
-            ? { ...f, status: r.ok ? "done" : "error", progress: 100 } : f));
+            ? { ...f, status: uploadOk ? "done" : "error", progress: 100 } : f));
           done++;
           setProgPct(Math.round(done / totalArchivos * 100));
-          if (!r.ok) console.error("Upload error:", (await r.json()).error);
         }
       }
 
@@ -584,7 +615,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               <p className="text-sm text-gray-900 font-medium">
                 Haz clic o arrastra archivos aqui
               </p>
-              <p className="text-xs text-gray-400 mt-1">              PDF, Word o Excel · hasta 50 MB por archivo</p>
+              <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel · hasta 50 MB por archivo</p>
             </div>
 
             {/* File list */}
