@@ -16,7 +16,6 @@ const TABLES: Record<string, { create: string; columns: ColumnDef[] }> = {
         unidad      text NOT NULL,
         cargo       text NOT NULL,
         cargo_otro  text,
-        modo        text NOT NULL CHECK (modo IN ('manual', 'doc')),
         sugerencias text,
         created_at  timestamptz NOT NULL DEFAULT now()
       );
@@ -29,7 +28,6 @@ const TABLES: Record<string, { create: string; columns: ColumnDef[] }> = {
       { name: "unidad", definition: "text NOT NULL" },
       { name: "cargo", definition: "text NOT NULL" },
       { name: "cargo_otro", definition: "text" },
-      { name: "modo", definition: "text NOT NULL CHECK (modo IN ('manual', 'doc'))" },
       { name: "sugerencias", definition: "text" },
       { name: "created_at", definition: "timestamptz NOT NULL DEFAULT now()" },
     ],
@@ -119,26 +117,6 @@ async function ensureTable(name: string, def: typeof TABLES[string]): Promise<{ 
     if (!alter.ok) return alter;
   }
 
-  // 3. Ensure CHECK constraint on modo — safely, without dropping existing data
-  if (name === "faq_respuestas") {
-    // Only add the constraint if it doesn't exist; don't force drop/recreate
-    // to avoid conflicts with existing data or different constraint names.
-    await exec(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint
-          WHERE conrelid = 'public.faq_respuestas'::regclass
-          AND conname LIKE '%modo%check%'
-        ) THEN
-          ALTER TABLE public.faq_respuestas
-            ADD CONSTRAINT faq_respuestas_modo_check
-            CHECK (modo IN ('manual', 'doc'));
-        END IF;
-      END $$;
-    `);
-  }
-
   return { ok: true };
 }
 
@@ -155,7 +133,7 @@ export async function ensureTables(): Promise<{
       ok: false,
       error:
         "No se pudo crear la función 'exec_sql'. " +
-        "Ejecutá 'supabase-schema.sql' en el SQL Editor de Supabase para crearla manualmente.",
+        "Ejecutá 'supabase-setup.sql' en el SQL Editor de Supabase para crearla manualmente.",
     };
   }
 

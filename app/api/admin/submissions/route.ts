@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   // Get all submissions with questions and documents
   const { data: respuestas, error: rErr } = await supabaseAdmin
     .from("faq_respuestas")
-    .select("id, nombre, correo, unidad, cargo, cargo_otro, modo, sugerencias, created_at")
+    .select("id, nombre, correo, unidad, cargo, cargo_otro, sugerencias, created_at")
     .order("created_at", { ascending: false });
 
   if (rErr) return NextResponse.json({ error: rErr.message }, { status: 500 });
@@ -56,16 +56,12 @@ export async function GET(req: NextRequest) {
   const totalSubmissions = data.length;
   const totalPreguntas = (preguntas || []).length;
   const totalDocs = (documentos || []).length;
-  const manualCount = data.filter((d) => d.modo === "manual").length;
-  const docCount = data.filter((d) => d.modo === "doc").length;
 
   return NextResponse.json({
     metrics: {
       totalSubmissions,
       totalPreguntas,
       totalDocs,
-      manualCount,
-      docCount,
     },
     submissions: data,
   });

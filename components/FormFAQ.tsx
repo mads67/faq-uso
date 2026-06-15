@@ -103,16 +103,6 @@ const IconFile = ({ size = 14 }: { size?: number }) => (
     <polyline points="14 2 14 8 20 8" />
   </svg>
 );
-const IconList = ({ size = 22 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="8" y1="6" x2="21" y2="6" />
-    <line x1="8" y1="12" x2="21" y2="12" />
-    <line x1="8" y1="18" x2="21" y2="18" />
-    <line x1="3" y1="6" x2="3.01" y2="6" />
-    <line x1="3" y1="12" x2="3.01" y2="12" />
-    <line x1="3" y1="18" x2="3.01" y2="18" />
-  </svg>
-);
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CATS = [
@@ -137,7 +127,6 @@ type Pregunta = { id: number; pregunta: string; respuesta: string; categoria: st
 type FileItem = { id: string; file: File; progress: number; status: "pending" | "uploading" | "done" | "error" };
 
 export default function FormFAQ({ initialSession }: { initialSession?: string | null }) {
-  const [modo, setModo] = useState<"manual" | "doc">("manual");
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [unidad, setUnidad] = useState("");
@@ -189,7 +178,6 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
       if (st.unidad !== undefined) setUnidad(st.unidad);
       if (st.cargo !== undefined) setCargo(st.cargo);
       if (st.cargoOtro !== undefined) setCargoOtro(st.cargoOtro);
-      if (st.modo !== undefined) setModo(st.modo);
       if (st.preguntas !== undefined) setPreguntas(st.preguntas);
       if (st.nextId !== undefined) setNextId(st.nextId);
       if (st.sugerencias !== undefined) setSugerencias(st.sugerencias);
@@ -202,7 +190,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
   useEffect(() => {
     if (!sessionId) return;
     const draft = {
-      nombre, correo, unidad, cargo, cargoOtro, modo,
+      nombre, correo, unidad, cargo, cargoOtro,
       preguntas, nextId, sugerencias, indicaciones,
     };
     clearTimeout(saveTimer.current);
@@ -211,7 +199,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
     }, 1500);
     return () => clearTimeout(saveTimer.current);
   }, [
-    sessionId, nombre, correo, unidad, cargo, cargoOtro, modo,
+    sessionId, nombre, correo, unidad, cargo, cargoOtro,
     preguntas, nextId, sugerencias, indicaciones,
   ]);
 
@@ -231,11 +219,25 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
     setPreguntas(p => p.map(q => q.id === id ? { ...q, [field]: val } : q));
 
   // ── Archivos ──
+  const allowedExtensions = [".pdf", ".doc", ".docx", ".xls", ".xlsx"];
+  const allowedMimes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ];
+
   const addFiles = useCallback((files: FileList | File[]) => {
     setError("");
     const items: FileItem[] = Array.from(files)
       .filter(f => {
-        if (f.size > 10 * 1024 * 1024) { setError(`"${f.name}" supera 10 MB.`); return false; }
+        const ext = "." + (f.name.split(".").pop()?.toLowerCase() ?? "");
+        if (!allowedExtensions.includes(ext)) {
+          setError(`"${f.name}" no es un tipo permitido (PDF, Word o Excel).`);
+          return false;
+        }
+        if (f.size > 50 * 1024 * 1024) { setError(`"${f.name}" supera 50 MB.`); return false; }
         return true;
       })
       .map(f => ({ id: crypto.randomUUID(), file: f, progress: 0, status: "pending" as const }));
@@ -268,14 +270,13 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
     if (!unidad.trim()) return setError("Ingresa el nombre de tu unidad."), false;
     if (!cargo) return setError("Selecciona tu cargo."), false;
     if (cargo === "Otro" && !cargoOtro.trim()) return setError("Especifica tu cargo."), false;
-    if (modo === "manual") {
-      if (!preguntas.length) return setError("Agrega al menos una pregunta."), false;
+    if (!preguntas.length && !archivos.length) return setError("Agrega al menos una pregunta o adjunta un documento."), false;
+    if (!archivos.length) {
       for (let i = 0; i < preguntas.length; i++) {
         if (!preguntas[i].pregunta.trim()) return setError(`La pregunta ${i + 1} está vacía.`), false;
         if (!preguntas[i].respuesta.trim()) return setError(`La respuesta ${i + 1} está vacía.`), false;
       }
     }
-    if (modo === "doc" && !archivos.length) return setError("Adjunta al menos un documento."), false;
     return true;
   };
 
@@ -291,15 +292,12 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
     if (correo) items.push({ label: "Correo", value: correo });
     items.push({ label: "Unidad", value: unidad });
     items.push({ label: "Cargo", value: cargo === "Otro" ? cargoOtro : cargo });
-    if (modo === "manual") {
-      items.push({ label: "Preguntas", value: `${preguntas.length} pregunta(s)` });
-    } else {
-      items.push({ label: "Documentos", value: `${archivos.length} archivo(s)` });
-    }
+    if (preguntas.length > 0) items.push({ label: "Preguntas", value: `${preguntas.length} pregunta(s)` });
+    if (archivos.length > 0) items.push({ label: "Documentos", value: `${archivos.length} archivo(s)` });
     return items;
   };
 
-  // ── Envío ──
+  // ── Envio ──
   const enviar = async () => {
     setSending(true);
     try {
@@ -312,25 +310,24 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
           session_id: sessionId || undefined,
           nombre, correo, unidad, cargo,
           cargo_otro: cargo === "Otro" ? cargoOtro : undefined,
-          modo,
           sugerencias: todasSugerencias,
-          preguntas: modo === "manual"
-            ? preguntas.map(p => ({
+          preguntas: preguntas
+            .filter(p => p.pregunta.trim())
+            .map(p => ({
               ...p,
               categoria: p.categoria === "Otra" && p.categoriaOtro.trim()
                 ? p.categoriaOtro.trim() : (p.categoria || null),
-            }))
-            : [],
+            })),
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al guardar");
 
-      if (modo === "doc") {
-        const total = archivos.length;
-        let done = 0;
+      const totalArchivos = archivos.length;
+      let done = 0;
+      if (totalArchivos > 0) {
         for (const item of archivos) {
-          setProgLabel(`Subiendo ${done + 1} de ${total}: ${item.file.name}`);
+          setProgLabel(`Subiendo ${done + 1} de ${totalArchivos}: ${item.file.name}`);
           setArchivos(a => a.map(f => f.id === item.id ? { ...f, status: "uploading" } : f));
           const fd = new FormData();
           fd.append("file", item.file);
@@ -340,13 +337,15 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
           setArchivos(a => a.map(f => f.id === item.id
             ? { ...f, status: r.ok ? "done" : "error", progress: 100 } : f));
           done++;
-          setProgPct(Math.round(done / total * 100));
+          setProgPct(Math.round(done / totalArchivos * 100));
           if (!r.ok) console.error("Upload error:", (await r.json()).error);
         }
-        setSuccess(`Se subieron ${done} de ${total} archivo(s). Gracias por tu aporte.`);
-      } else {
-        setSuccess(`Se registraron ${preguntas.length} pregunta(s). Gracias por tu aporte.`);
       }
+
+      const partes: string[] = [];
+      if (preguntas.length > 0) partes.push(`${preguntas.length} pregunta(s)`);
+      if (done > 0) partes.push(`${done} archivo(s)`);
+      setSuccess(`Se registraron ${partes.join(" y ")}. Gracias por tu aporte.`);
 
       if (sessionId) {
         localStorage.removeItem(`faq_draft_${sessionId}`);
@@ -368,7 +367,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
     setPreguntas([{ id: 1, pregunta: "", respuesta: "", categoria: "", categoriaOtro: "" }]);
     setNextId(2); setArchivos([]); setIndicaciones("");
     setSugerencias("");
-    setError(""); setProgLabel(""); setProgPct(0); setSuccess(null); setModo("manual");
+    setError(""); setProgLabel(""); setProgPct(0); setSuccess(null);
     if (sessionId) {
       localStorage.removeItem(`faq_draft_${sessionId}`);
     }
@@ -388,7 +387,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
       <h2 className="text-lg font-semibold text-gray-900 mb-1">Respuesta enviada</h2>
       <p className="text-gray-500 text-sm leading-relaxed max-w-xs mx-auto">{success}</p>
       <button onClick={resetForm}
-        className="mt-6 inline-flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition active:scale-[.97]">
+        className="mt-6 inline-flex items-center gap-2 px-5 py-2 bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-800 transition active:scale-[.97] cursor-pointer">
         <IconRefresh size={14} />
         Enviar otra respuesta
       </button>
@@ -432,7 +431,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               <button
                 onClick={confirmarEnvio}
                 disabled={sending}
-                className="flex-1 inline-flex items-center justify-center gap-2 py-2 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition active:scale-[.97]">
+                className="flex-1 inline-flex items-center justify-center gap-2 py-2 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition active:scale-[.97] cursor-pointer">
                 {sending ? <><IconSpinner size={13} /> Enviando...</> : <><IconSend size={13} /> Si, enviar</>}
               </button>
             </div>
@@ -472,7 +471,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               </div>
               <div className="mt-3 sm:mt-0">
                 <label className={labelCls}>Cargo <span className="text-red-400">*</span></label>
-                <select ref={cargoRef} data-field="cargo" className={inputCls} value={cargo} onChange={e => { setCargo(e.target.value); setCargoOtro(""); }}>
+                <select ref={cargoRef} data-field="cargo" className={`${inputCls} cursor-pointer`} value={cargo} onChange={e => { setCargo(e.target.value); setCargoOtro(""); }}>
                   <option value="">— Selecciona —</option>
                   {CARGOS.map(o => <option key={o}>{o}</option>)}
                 </select>
@@ -485,34 +484,8 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
           </div>
         </section>
 
-        {/* ── MODO ── */}
+        {/* ── PREGUNTAS Y RESPUESTAS ── */}
         <section>
-          <h2 className={sectionTitle}>
-            <IconList size={18} />
-            Como deseas registrar las preguntas?
-          </h2>
-          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-            {(["manual", "doc"] as const).map(m => {
-              const active = modo === m;
-              return (
-                <button key={m} type="button" onClick={() => setModo(m)}
-                  className={`border p-3 sm:p-4 flex flex-col items-center gap-2 sm:gap-2.5 text-xs sm:text-sm font-medium transition cursor-pointer active:scale-[.98]
-                    ${active ? "border-gray-900 bg-gray-50 text-gray-900" : "border-gray-100 text-gray-400 hover:border-gray-300 hover:text-gray-600"}`}>
-                  <span className={active ? "text-gray-900" : "text-gray-300"}>
-                    {m === "manual" ? <IconPen size={20} /> : <IconFileText size={20} />}
-                  </span>
-                  <span className="text-center leading-snug">
-                    {m === "manual" ? <>Agregar preguntas<br />una a una</> : <>Cargar<br />documentos</>}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── PANEL MANUAL ── */}
-        {modo === "manual" && (
-          <section>
             <h2 className={sectionTitle}>
               <IconPen size={18} />
               Preguntas y respuestas
@@ -536,7 +509,6 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                       <label className={labelCls}>Pregunta <span className="text-red-400">*</span></label>
                       <textarea data-field={`pq-${q.id}`} rows={3}
                         className="w-full px-3 py-1.5 border border-gray-300 text-sm bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition resize-y overflow-hidden"
-                        placeholder="Escribe la pregunta frecuente..."
                         value={q.pregunta}
                         onChange={e => updatePregunta(q.id, "pregunta", e.target.value)}
                         onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }} />
@@ -545,7 +517,6 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                       <label className={labelCls}>Respuesta sugerida <span className="text-red-400">*</span></label>
                       <textarea data-field={`pr-${q.id}`} rows={4}
                         className="w-full px-3 py-1.5 border border-gray-300 text-sm bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition resize-y overflow-hidden"
-                        placeholder="Escribe la respuesta sugerida..."
                         value={q.respuesta}
                         onChange={e => updatePregunta(q.id, "respuesta", e.target.value)}
                         onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }} />
@@ -585,17 +556,15 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               </button>
             )}
           </section>
-        )}
 
-        {/* ── PANEL DOCUMENTO ── */}
-        {modo === "doc" && (
-          <section>
-            <h2 className={sectionTitle}>
+        {/* ── DOCUMENTOS ── */}
+        <section>
+          <h2 className={sectionTitle}>
               <IconFileText size={18} />
               Documentos
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-              Sube uno o varios archivos (Word, PDF o Excel). Max. 10 MB por archivo.
+              Sube uno o varios archivos (Word, PDF o Excel). Max. 50 MB por archivo.
             </p>
 
             {/* Drop zone */}
@@ -615,7 +584,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               <p className="text-sm text-gray-900 font-medium">
                 Haz clic o arrastra archivos aqui
               </p>
-              <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel · hasta 10 MB por archivo</p>
+              <p className="text-xs text-gray-400 mt-1">              PDF, Word o Excel · hasta 50 MB por archivo</p>
             </div>
 
             {/* File list */}
@@ -661,7 +630,6 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
             )}
 
           </section>
-        )}
 
         {/* ── SUGERENCIAS ── */}
         <section>
@@ -695,7 +663,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
         {/* ── SUBMIT ── */}
         <button type="button" onClick={handleSubmitClick} disabled={sending}
           className="w-full inline-flex items-center justify-center gap-2 py-3 sm:py-3 bg-gray-900 text-white font-medium text-sm
-            hover:bg-gray-800 active:scale-[.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition">
+            hover:bg-gray-800 active:scale-[.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition cursor-pointer">
           {sending ? <><IconSpinner size={16} /> Enviando...</> : <><IconSend size={15} /> Enviar respuesta</>}
         </button>
 

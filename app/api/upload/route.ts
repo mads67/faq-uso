@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const BUCKET = "faq-documentos";
+const MAX_SIZE = 50 * 1024 * 1024;
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,6 +20,14 @@ export async function POST(req: NextRequest) {
 
     if (!file || !respuestaId) {
       return NextResponse.json({ error: "Faltan parámetros requeridos" }, { status: 400 });
+    }
+
+    if (file.size > MAX_SIZE) {
+      return NextResponse.json({ error: `"${file.name}" supera 50 MB` }, { status: 400 });
+    }
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return NextResponse.json({ error: `"${file.name}" no es un tipo permitido (PDF, Word o Excel)` }, { status: 400 });
     }
 
     const ext = file.name.split(".").pop() ?? "bin";

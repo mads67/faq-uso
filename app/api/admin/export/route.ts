@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { validateToken } from "@/lib/admin-auth";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+
+const BUCKET = "faq-documentos";
 
 export async function GET(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -11,10 +13,9 @@ export async function GET(req: NextRequest) {
 
   const format = req.nextUrl.searchParams.get("format") || "csv";
 
-  // Fetch all data
   const { data: respuestas, error: rErr } = await supabaseAdmin
     .from("faq_respuestas")
-    .select("id, nombre, correo, unidad, cargo, cargo_otro, modo, sugerencias, created_at")
+    .select("id, nombre, correo, unidad, cargo, cargo_otro, sugerencias, created_at")
     .order("created_at", { ascending: false });
 
   if (rErr) return NextResponse.json({ error: rErr.message }, { status: 500 });
@@ -28,83 +29,158 @@ export async function GET(req: NextRequest) {
 
   const { data: documentos } = await supabaseAdmin
     .from("faq_documentos")
-    .select("respuesta_id, nombre_archivo, indicaciones, created_at")
+    .select("respuesta_id, nombre_archivo, storage_path, indicaciones, created_at")
     .in("respuesta_id", ids);
 
-  // Build rows
-  const rows: Record<string, string | number | null>[] = [];
-
-  for (const r of respuestas) {
-    const relatedPreguntas = (preguntas || []).filter(
-      (p: { respuesta_id: number }) => p.respuesta_id === r.id
-    );
-    const relatedDocs = (documentos || []).filter(
-      (d: { respuesta_id: number }) => d.respuesta_id === r.id
-    );
-
-    if (relatedPreguntas.length > 0) {
-      for (const p of relatedPreguntas) {
-        rows.push({
-          ID: r.id,
-          Nombre: r.nombre,
-          Correo: r.correo,
-          Unidad: r.unidad,
-          Cargo: r.cargo_otro || r.cargo,
-          Modo: r.modo,
-          Sugerencias: r.sugerencias || "",
-          "Fecha envio": r.created_at,
-          "Num. pregunta": p.numero,
-          Pregunta: p.pregunta,
-          Respuesta: p.respuesta,
-          Categoria: p.categoria || "",
-          Documento: "",
-          Indicaciones: "",
-        });
-      }
-    } else if (relatedDocs.length > 0) {
-      for (const d of relatedDocs) {
-        rows.push({
-          ID: r.id,
-          Nombre: r.nombre,
-          Correo: r.correo,
-          Unidad: r.unidad,
-          Cargo: r.cargo_otro || r.cargo,
-          Modo: r.modo,
-          Sugerencias: r.sugerencias || "",
-          "Fecha envio": r.created_at,
-          "Num. pregunta": "",
-          Pregunta: "",
-          Respuesta: "",
-          Categoria: "",
-          Documento: d.nombre_archivo,
-          Indicaciones: d.indicaciones || "",
-        });
-      }
-    } else {
-      rows.push({
-        ID: r.id,
-        Nombre: r.nombre,
-        Correo: r.correo,
-        Unidad: r.unidad,
-        Cargo: r.cargo_otro || r.cargo,
-        Modo: r.modo,
-        Sugerencias: r.sugerencias || "",
-        "Fecha envio": r.created_at,
-        "Num. pregunta": "",
-        Pregunta: "",
-        Respuesta: "",
-        Categoria: "",
-        Documento: "",
-        Indicaciones: "",
-      });
-    }
-  }
+  const fmtDate = (d: string) => {
+    const dt = new Date(d);
+    return dt.toLocaleDateString("es-SV", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+      hour: "2-digit", minute: "2-digit",
+    });
+  };
 
   if (format === "xlsx") {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, "Respuestas");
-    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    const wb = new ExcelJS.Workbook();
+
+    const headerFont = { bold: true, color: { argb: "FFFFFFFF" }, size: 11 };
+    const headerFill = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FF111827" } };
+    const headerAlign = { horizontal: "center" as const, vertical: "middle" as const };
+    const evenFill = { type: "pattern" as const, pattern: "solid" as const, fgColor: { argb: "FFF3F4F6" } };
+
+    const applyHeaderStyle = (row: ExcelJS.Row) => {
+      row.font = headerFont;
+      row.fill = headerFill;
+      row.alignment = headerAlign;
+      row.height = 20;
+    };
+
+    const applyStripes = (ws: ExcelJS.Worksheet, endRow: number) => {
+      for (let r = 2; r <= endRow; r++) {
+        if (r % 2 === 0) {
+          ws.getRow(r).eachCell((cell) => {
+            cell.fill = evenFill;
+          });
+        }
+      }
+    };
+
+    // ── Sheet 1: Respondentes ──
+    const wsResp = wb.addWorksheet("Respondentes");
+    wsResp.columns = [
+      { header: "ID", key: "id", width: 8 },
+      { header: "Nombre", key: "nombre", width: 26 },
+      { header: "Correo", key: "correo", width: 30 },
+      { header: "Unidad", key: "unidad", width: 26 },
+      { header: "Cargo", key: "cargo", width: 22 },
+      { header: "Sugerencias", key: "sugerencias", width: 36 },
+      { header: "Fecha envio", key: "fecha", width: 20 },
+    ];
+    for (const r of respuestas) {
+      wsResp.addRow({
+        id: r.id,
+        nombre: r.nombre,
+        correo: r.correo || "",
+        unidad: r.unidad,
+        cargo: (r as any).cargo_otro || r.cargo,
+        sugerencias: r.sugerencias || "",
+        fecha: fmtDate(r.created_at),
+      });
+    }
+    applyHeaderStyle(wsResp.getRow(1));
+    applyStripes(wsResp, wsResp.rowCount);
+
+    // ── Sheet 2: Preguntas ──
+    if (preguntas && preguntas.length > 0) {
+      const wsPreg = wb.addWorksheet("Preguntas");
+      wsPreg.columns = [
+        { header: "ID respuesta", key: "idRespuesta", width: 14 },
+        { header: "#", key: "numero", width: 6 },
+        { header: "Pregunta", key: "pregunta", width: 52 },
+        { header: "Respuesta", key: "respuesta", width: 52 },
+        { header: "Categoria", key: "categoria", width: 22 },
+      ];
+      for (const p of preguntas) {
+        wsPreg.addRow({
+          idRespuesta: p.respuesta_id,
+          numero: p.numero,
+          pregunta: p.pregunta,
+          respuesta: p.respuesta,
+          categoria: p.categoria || "",
+        });
+      }
+      applyHeaderStyle(wsPreg.getRow(1));
+      applyStripes(wsPreg, wsPreg.rowCount);
+    }
+
+    // ── Sheet 3: Documentos ──
+    if (documentos && documentos.length > 0) {
+      const wsDoc = wb.addWorksheet("Documentos");
+      wsDoc.columns = [
+        { header: "ID respuesta", key: "idRespuesta", width: 14 },
+        { header: "Archivo", key: "archivo", width: 40 },
+        { header: "Link descarga", key: "link", width: 18 },
+        { header: "Indicaciones", key: "indicaciones", width: 30 },
+        { header: "Fecha subida", key: "fecha", width: 20 },
+      ];
+
+      for (const d of documentos) {
+        let link = "";
+        try {
+          const { data } = await supabaseAdmin.storage
+            .from(BUCKET)
+            .createSignedUrl(d.storage_path, 60 * 60 * 24 * 7);
+          link = data?.signedUrl || "";
+        } catch { /* fallback */ }
+
+        wsDoc.addRow({
+          idRespuesta: d.respuesta_id,
+          archivo: d.nombre_archivo,
+          link: link,
+          indicaciones: d.indicaciones || "",
+          fecha: fmtDate(d.created_at),
+        });
+      }
+      applyHeaderStyle(wsDoc.getRow(1));
+      applyStripes(wsDoc, wsDoc.rowCount);
+
+      // Override download link cells with button style (after stripes)
+      for (let r = 2; r <= wsDoc.rowCount; r++) {
+        const linkCell = wsDoc.getCell(r, 3);
+        if (linkCell.value) {
+          linkCell.value = { text: "Descargar", hyperlink: linkCell.value as string };
+          linkCell.font = { bold: true, color: { argb: "FFFFFFFF" }, size: 10 };
+          linkCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF111827" } };
+          linkCell.alignment = { horizontal: "center", vertical: "middle" };
+          linkCell.border = {
+            top: { style: "thin", color: { argb: "FF374151" } },
+            left: { style: "thin", color: { argb: "FF374151" } },
+            bottom: { style: "thin", color: { argb: "FF374151" } },
+            right: { style: "thin", color: { argb: "FF374151" } },
+          };
+        }
+      }
+    }
+
+    // ── Sheet 4: Resumen ──
+    const wsSum = wb.addWorksheet("Resumen");
+    wsSum.columns = [
+      { header: "Metrica", key: "metrica", width: 30 },
+      { header: "Valor", key: "valor", width: 12 },
+    ];
+    wsSum.addRow({ metrica: "TOTAL DE ENVIOS", valor: respuestas.length });
+    wsSum.addRow({ metrica: "Total preguntas registradas", valor: (preguntas || []).length });
+    wsSum.addRow({ metrica: "Total documentos subidos", valor: (documentos || []).length });
+    wsSum.addRow({});
+    wsSum.addRow({ metrica: "Exportado el", valor: new Date().toLocaleString("es-SV") });
+    wsSum.addRow({ metrica: "Total envios", valor: respuestas.length });
+    applyHeaderStyle(wsSum.getRow(1));
+    for (let r = 2; r <= wsSum.rowCount; r++) {
+      const cell = wsSum.getCell(r, 1);
+      cell.font = { bold: true, size: 11 };
+    }
+
+    const buf = await wb.xlsx.writeBuffer();
 
     return new NextResponse(buf, {
       headers: {
@@ -115,10 +191,9 @@ export async function GET(req: NextRequest) {
   }
 
   // CSV fallback
-  const headers = [
-    "ID", "Nombre", "Correo", "Unidad", "Cargo", "Modo", "Sugerencias",
-    "Fecha envio", "Num. pregunta", "Pregunta", "Respuesta", "Categoria",
-    "Documento", "Indicaciones",
+  const csvHeaders = [
+    "ID", "Nombre", "Correo", "Unidad", "Cargo", "Sugerencias",
+    "Fecha envio",
   ];
   const esc = (v: unknown) => {
     const s = String(v ?? "");
@@ -126,12 +201,25 @@ export async function GET(req: NextRequest) {
       ? `"${s.replace(/"/g, '""')}"`
       : s;
   };
+  const respRows = respuestas.map((r: Record<string, unknown>) => ({
+    ID: r.id,
+    Nombre: r.nombre as string,
+    Correo: (r.correo as string) || "",
+    Unidad: r.unidad as string,
+    Cargo: ((r as { cargo_otro?: string | null; cargo?: string }).cargo_otro || r.cargo) as string,
+    Sugerencias: (r.sugerencias as string) || "",
+    "Fecha envio": fmtDate(r.created_at as string),
+  }));
   const csv = [
-    headers.join(","),
-    ...rows.map((r) => headers.map((h) => esc(r[h])).join(",")),
+    csvHeaders.join(","),
+    ...respRows.map((r: Record<string, unknown>) =>
+      csvHeaders.map((h) => esc(r[h])).join(",")
+    ),
   ].join("\n");
 
-  return new NextResponse(csv, {
+  const bom = "\uFEFF";
+
+  return new NextResponse(bom + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="faq-export-${Date.now()}.csv"`,

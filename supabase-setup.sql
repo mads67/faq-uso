@@ -3,7 +3,13 @@
 -- Ejecuta en: Supabase → SQL Editor → New Query
 -- ============================================================
 
--- 0. Función helper para auto-sync
+-- 0. Drop de tablas existentes (orden inverso por FK)
+DROP VIEW IF EXISTS faq_completo;
+DROP TABLE IF EXISTS faq_documentos;
+DROP TABLE IF EXISTS faq_preguntas;
+DROP TABLE IF EXISTS faq_respuestas;
+
+-- 1. Función helper para auto-sync
 CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
 RETURNS void AS $$
 BEGIN
@@ -13,37 +19,35 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 1. Tabla de respuestas
 CREATE TABLE IF NOT EXISTS faq_respuestas (
-  id          uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at  timestamptz DEFAULT now(),
+  id          bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  created_at  timestamptz NOT NULL DEFAULT now(),
   session_id  text,
   nombre      text        NOT NULL,
-  correo      text,                           -- opcional
+  correo      text,
   unidad      text        NOT NULL,
   cargo       text        NOT NULL,
   cargo_otro  text,
-  modo        text        NOT NULL CHECK (modo IN ('manual', 'doc')),
   sugerencias text
 );
 
--- 2. Tabla de preguntas (modo manual)
+-- 2. Tabla de preguntas
 CREATE TABLE IF NOT EXISTS faq_preguntas (
-  id           uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at   timestamptz DEFAULT now(),
-  respuesta_id uuid        REFERENCES faq_respuestas(id) ON DELETE CASCADE,
-  numero       integer     NOT NULL,
-  pregunta     text        NOT NULL,
-  respuesta    text        NOT NULL,
+  id           bigint   GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  respuesta_id bigint   NOT NULL REFERENCES faq_respuestas(id) ON DELETE CASCADE,
+  numero       smallint NOT NULL,
+  pregunta     text     NOT NULL,
+  respuesta    text     NOT NULL,
   categoria    text
 );
 
--- 3. Tabla de documentos (modo documento)
+-- 3. Tabla de documentos
 CREATE TABLE IF NOT EXISTS faq_documentos (
-  id             uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-  created_at     timestamptz DEFAULT now(),
-  respuesta_id   uuid        REFERENCES faq_respuestas(id) ON DELETE CASCADE,
+  id             bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  respuesta_id   bigint      NOT NULL REFERENCES faq_respuestas(id) ON DELETE CASCADE,
   nombre_archivo text        NOT NULL,
   storage_path   text        NOT NULL,
-  indicaciones   text
+  indicaciones   text,
+  created_at     timestamptz NOT NULL DEFAULT now()
 );
 
 -- 4. Bucket de storage
@@ -81,31 +85,3 @@ CREATE POLICY "upload_faq_docs"
 CREATE POLICY "select_faq_docs"
   ON storage.objects FOR SELECT TO anon
   USING (bucket_id = 'faq-documentos');
-
--- 7. Vista combinada para exportar
-DROP VIEW IF EXISTS faq_completo;
-CREATE VIEW faq_completo AS
-  SELECT
-    r.id,
-    r.created_at,
-    r.session_id,
-    r.nombre,
-    r.correo,
-    r.unidad,
-    r.cargo,
-    r.cargo_otro,
-    r.modo,
-    r.sugerencias,
-    p.numero       AS pregunta_numero,
-    p.pregunta,
-    p.respuesta,
-    p.categoria,
-    d.nombre_archivo,
-    d.storage_path,
-    d.indicaciones AS doc_indicaciones
-  FROM faq_respuestas r
-  LEFT JOIN faq_preguntas  p ON p.respuesta_id = r.id
-  LEFT JOIN faq_documentos d ON d.respuesta_id = r.id
-  ORDER BY r.created_at DESC, p.numero;
-
-GRANT SELECT ON faq_completo TO anon;

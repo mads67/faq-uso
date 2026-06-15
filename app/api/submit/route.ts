@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { nombre, correo, unidad, cargo, cargo_otro, modo, preguntas, sugerencias, session_id } = body;
+    const { nombre, correo, unidad, cargo, cargo_otro, preguntas, sugerencias, session_id } = body;
 
     // Insert respondente record
     const { data: respuesta, error: respErr } = await supabaseAdmin
@@ -22,7 +22,6 @@ export async function POST(req: NextRequest) {
         unidad,
         cargo,
         cargo_otro: cargo_otro ?? null,
-        modo,
         sugerencias: sugerencias ?? null,
       })
       .select("id")
@@ -30,8 +29,8 @@ export async function POST(req: NextRequest) {
 
     if (respErr) throw respErr;
 
-    // Insert individual Q&A rows (manual mode)
-    if (modo === "manual" && Array.isArray(preguntas) && preguntas.length > 0) {
+    // Insert individual Q&A rows
+    if (Array.isArray(preguntas) && preguntas.length > 0) {
       const rows = preguntas.map((p: { pregunta: string; respuesta: string; categoria: string }, i: number) => ({
         respuesta_id: respuesta.id,
         numero: i + 1,
