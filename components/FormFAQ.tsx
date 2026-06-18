@@ -480,9 +480,9 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               Se está desarrollando un <strong className="font-semibold text-gray-900">chatbot de atención estudiantil</strong> para
               la Universidad de Sonsonate que orientará a los estudiantes sobre trámites y servicios académicos de forma automática.
               Para que el chatbot responda con precisión necesita aprender de la experiencia real de cada unidad.
-              Tu aporte consiste en registrar las preguntas que recibes con frecuencia junto con sus respuestas,
+              Su aporte consiste en registrar las preguntas que recibes con frecuencia junto con sus respuestas,
               ya sea escribiéndolas directamente en el formulario o adjuntando un documento
-              que contenga ese listado de preguntas y respuestas.
+              que contenga la lista de preguntas y respuestas.
             </p>
           </div>
 
