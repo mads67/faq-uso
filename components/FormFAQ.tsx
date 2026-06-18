@@ -259,11 +259,11 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
 
   // ── Validación ──
   const validate = () => {
-    if (!nombre.trim()) return setError("Ingresa tu nombre completo."), false;
-    if (!unidad.trim()) return setError("Ingresa el nombre de tu unidad."), false;
-    if (!cargo) return setError("Selecciona tu cargo."), false;
-    if (cargo === "Otro" && !cargoOtro.trim()) return setError("Especifica tu cargo."), false;
-    if (!preguntas.length && !archivos.length) return setError("Agrega al menos una pregunta o adjunta un documento."), false;
+    if (!nombre.trim()) return setError("Ingrese su nombre completo."), false;
+    if (!unidad.trim()) return setError("Ingrese el nombre de su unidad."), false;
+    if (!cargo) return setError("Seleccione su cargo."), false;
+    if (cargo === "Otro" && !cargoOtro.trim()) return setError("Especifique su cargo."), false;
+    if (!preguntas.length && !archivos.length) return setError("Agregue al menos una pregunta o adjunte un documento."), false;
     if (!archivos.length) {
       for (let i = 0; i < preguntas.length; i++) {
         if (!preguntas[i].pregunta.trim()) return setError(`La pregunta ${i + 1} está vacía.`), false;
@@ -376,7 +376,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
       const partes: string[] = [];
       if (preguntas.length > 0) partes.push(`${preguntas.length} pregunta(s)`);
       if (done > 0) partes.push(`${done} archivo(s)`);
-      setSuccess(`Se registraron ${partes.join(" y ")}. Gracias por tu aporte.`);
+      setSuccess(`Se registraron ${partes.join(" y ")}. Gracias por su aporte.`);
 
       if (sessionId) {
         localStorage.removeItem(`faq_draft_${sessionId}`);
@@ -436,9 +436,9 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                 <IconAlertTriangle size={20} />
               </span>
               <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">Confirmar envio</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">Confirmar envío</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Revisa la informacion antes de continuar. Una vez enviada no podras modificarla.
+                  Revise la información antes de continuar. Una vez enviada no podrá modificarla.
                 </p>
               </div>
             </div>
@@ -463,7 +463,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                 onClick={confirmarEnvio}
                 disabled={sending}
                 className="flex-1 inline-flex items-center justify-center gap-2 py-2 bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition active:scale-[.97] cursor-pointer">
-                {sending ? <><IconSpinner size={13} /> Enviando...</> : <><IconSend size={13} /> Si, enviar</>}
+                {sending ? <><IconSpinner size={13} /> Enviando...</> : <><IconSend size={13} /> Sí, enviar</>}
               </button>
             </div>
           </div>
@@ -489,7 +489,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
           {/* Combinaciones válidas */}
           <div className="border border-gray-200 rounded p-3 sm:p-4 bg-gray-50">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
-              ¿Qué puedes registrar?
+              ¿Qué puede registrar?
             </p>
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2">
               <div className="bg-white border border-green-200 rounded p-2 flex flex-col items-center gap-1.5 text-center">
@@ -562,7 +562,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                   {CARGOS.map(o => <option key={o}>{o}</option>)}
                 </select>
                 {cargo === "Otro" && (
-                  <input ref={cargoOtroRef} data-field="cargoOtro" className={`${inputCls} mt-2`} placeholder="Especifica tu cargo..."
+                  <input ref={cargoOtroRef} data-field="cargoOtro" className={`${inputCls} mt-2`} placeholder="Especifique su cargo..."
                     value={cargoOtro} onChange={e => setCargoOtro(e.target.value)} />
                 )}
               </div>
@@ -659,7 +659,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               Documentos
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-              Adjunta uno o varios documentos que contengan el listado de preguntas frecuentes de tu área junto con sus respuestas. Formatos aceptados: Word, PDF o Excel. Máximo 50 MB por archivo.
+              Adjunte uno o varios documentos que contengan el listado de preguntas frecuentes de su área junto con sus respuestas. Formatos aceptados: Word, PDF o Excel. Máximo 50 MB por archivo.
             </p>
 
             {/* Drop zone */}
@@ -677,7 +677,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                 <IconUpload size={28} />
               </div>
               <p className="text-sm text-gray-900 font-medium">
-                Haz clic o arrastra archivos aqui
+                Haga clic o arrastre archivos aqui
               </p>
               <p className="text-xs text-gray-400 mt-1">PDF, Word o Excel · hasta 50 MB por archivo</p>
             </div>
@@ -734,13 +734,13 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
           </h2>
           <div>
             <label className={labelCls}>
-              Tienes alguna sugerencia o comentario adicional?{" "}
+              ¿Tiene alguna sugerencia o comentario adicional?{" "}
               <span className="text-gray-400 font-normal normal-case tracking-normal">(opcional)</span>
             </label>
             <textarea
               rows={3}
               className={inputCls}
-              placeholder="Cualquier comentario, contexto extra o sugerencia que consideres util..."
+              placeholder="Cualquier comentario, contexto extra o sugerencia que considere util..."
               value={sugerencias}
               onChange={e => setSugerencias(e.target.value)}
             />
