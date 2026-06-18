@@ -54,7 +54,7 @@ export default async function Home(props: { searchParams?: Promise<{ s?: string 
 
               <div className="border border-gray-200 rounded p-4 bg-gray-50">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
-                  ¿Qué puedes registrar?
+                  ¿Qué puede registrar?
                 </p>
                 <div className="space-y-2">
                   {["Preguntas y documentos", "Solo preguntas", "Solo documentos"].map(label => (
@@ -77,7 +77,7 @@ export default async function Home(props: { searchParams?: Promise<{ s?: string 
           </aside>
 
           {/* Form card */}
-          <div className="bg-white border border-gray-200 p-4 sm:p-6 md:p-8 rounded">
+          <div className="bg-white border border-gray-200 p-4 sm:p6 md:p-8 rounded">
             <FormFAQ initialSession={session} />
           </div>
 
