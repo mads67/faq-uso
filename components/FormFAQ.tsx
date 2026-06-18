@@ -472,6 +472,61 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
 
       <div className="space-y-6 sm:space-y-8">
 
+        {/* ── INTRO — oculto en desktop (se muestra en el panel izquierdo) ── */}
+        <div className="space-y-4 lg:hidden">
+          <div className="border-l-4 border-gray-900 pl-4 py-0.5">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              <strong className="font-semibold text-gray-900">¿Para qué sirve este formulario?</strong>{" "}
+              Se está desarrollando un <strong className="font-semibold text-gray-900">chatbot de atención estudiantil</strong> para
+              la Universidad de Sonsonate que orientará a los estudiantes sobre trámites y servicios académicos de forma automática.
+              Para que el chatbot responda con precisión necesita aprender de la experiencia real de cada unidad.
+              Tu aporte consiste en registrar las preguntas que recibes con frecuencia junto con sus respuestas,
+              ya sea escribiéndolas directamente en el formulario o adjuntando un documento
+              que contenga ese listado de preguntas y respuestas.
+            </p>
+          </div>
+
+          {/* Combinaciones válidas */}
+          <div className="border border-gray-200 rounded p-3 sm:p-4 bg-gray-50">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
+              ¿Qué puedes registrar?
+            </p>
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-2">
+              <div className="bg-white border border-green-200 rounded p-2 flex flex-col items-center gap-1.5 text-center">
+                <div className="flex items-center gap-0.5 text-gray-700">
+                  <IconPen size={12} />
+                  <span className="text-gray-300 text-[10px] leading-none">+</span>
+                  <IconFileText size={12} />
+                </div>
+                <span className="text-[10px] sm:text-[11px] text-gray-600 leading-tight">Preguntas<br />y documentos</span>
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-green-600">
+                  <IconCheck size={10} /> Válido
+                </span>
+              </div>
+              <div className="bg-white border border-green-200 rounded p-2 flex flex-col items-center gap-1.5 text-center">
+                <span className="text-gray-700"><IconPen size={12} /></span>
+                <span className="text-[10px] sm:text-[11px] text-gray-600 leading-tight">Solo<br />preguntas</span>
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-green-600">
+                  <IconCheck size={10} /> Válido
+                </span>
+              </div>
+              <div className="bg-white border border-green-200 rounded p-2 flex flex-col items-center gap-1.5 text-center">
+                <span className="text-gray-700"><IconFileText size={12} /></span>
+                <span className="text-[10px] sm:text-[11px] text-gray-600 leading-tight">Solo<br />documentos</span>
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-green-600">
+                  <IconCheck size={10} /> Válido
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 border border-red-100 bg-red-50 rounded p-2">
+              <span className="text-red-400 shrink-0"><IconX size={13} /></span>
+              <span className="text-[10px] sm:text-[11px] text-red-600 leading-snug">
+                Sin preguntas ni documentos no es posible enviar el formulario
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* ── DATOS GENERALES ── */}
         <section>
           <h2 className={sectionTitle}>
@@ -479,7 +534,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
             Datos generales
           </h2>
           <div className="space-y-3 sm:space-y-4">
-            <div className="grid gap-x-4 lg:grid-cols-2">
+            <div className="grid gap-x-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Nombre completo <span className="text-red-400">*</span></label>
                 <input ref={nombreRef} data-field="nombre" className={inputCls} placeholder="Ej. Maria Lopez"
@@ -494,7 +549,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                   value={correo} onChange={e => setCorreo(e.target.value)} />
               </div>
             </div>
-            <div className="grid gap-x-4 lg:grid-cols-2">
+            <div className="grid gap-x-4 sm:grid-cols-2">
               <div>
                 <label className={labelCls}>Unidad o area <span className="text-red-400">*</span></label>
                 <input ref={unidadRef} data-field="unidad" className={inputCls} placeholder="Ej. Registro Academico"
@@ -520,6 +575,9 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
             <h2 className={sectionTitle}>
               <IconPen size={18} />
               Preguntas y respuestas
+              {archivos.length > 0 && (
+                <span className="ml-1 text-[10px] font-normal normal-case tracking-normal text-gray-400">(opcional)</span>
+              )}
             </h2>
             <div className="space-y-3">
               {preguntas.map((q, i) => (
@@ -537,7 +595,10 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                   </div>
                   <div className="space-y-2">
                     <div>
-                      <label className={labelCls}>Pregunta <span className="text-red-400">*</span></label>
+                      <label className={labelCls}>
+                        Pregunta{" "}
+                        {archivos.length === 0 && <span className="text-red-400">*</span>}
+                      </label>
                       <textarea data-field={`pq-${q.id}`} rows={3}
                         className="w-full px-3 py-1.5 border border-gray-300 text-sm bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition resize-y overflow-hidden"
                         value={q.pregunta}
@@ -545,7 +606,10 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                         onInput={e => { const t = e.target as HTMLTextAreaElement; t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }} />
                     </div>
                     <div>
-                      <label className={labelCls}>Respuesta sugerida <span className="text-red-400">*</span></label>
+                      <label className={labelCls}>
+                        Respuesta sugerida{" "}
+                        {archivos.length === 0 && <span className="text-red-400">*</span>}
+                      </label>
                       <textarea data-field={`pr-${q.id}`} rows={4}
                         className="w-full px-3 py-1.5 border border-gray-300 text-sm bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition resize-y overflow-hidden"
                         value={q.respuesta}
@@ -581,7 +645,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                 type="button"
                 onClick={addPregunta}
                 title="Agregar pregunta"
-                className="fixed bottom-6 right-6 z-40 w-12 h-12 flex items-center justify-center bg-gray-900 text-white shadow-md hover:bg-gray-800 active:scale-90 transition-all cursor-pointer rounded"
+                className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 sm:right-6 z-40 w-12 h-12 flex items-center justify-center bg-gray-900 text-white shadow-md hover:bg-gray-800 active:scale-90 transition-all cursor-pointer rounded"
               >
                 <IconPlus size={22} />
               </button>
@@ -595,12 +659,12 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               Documentos
             </h2>
             <p className="text-sm text-gray-500 mb-4">
-              Sube uno o varios archivos (Word, PDF o Excel). Max. 50 MB por archivo.
+              Adjunta uno o varios documentos que contengan el listado de preguntas frecuentes de tu área junto con sus respuestas. Formatos aceptados: Word, PDF o Excel. Máximo 50 MB por archivo.
             </p>
 
             {/* Drop zone */}
             <div data-field="archivos"
-              className={`border border-dashed p-8 text-center cursor-pointer transition rounded
+              className={`border border-dashed p-5 sm:p-8 text-center cursor-pointer transition rounded
                 ${dragging ? "border-gray-900 bg-gray-100" : "border-gray-400 hover:border-gray-900"}`}
               onDragOver={e => { e.preventDefault(); setDragging(true); }}
               onDragLeave={() => setDragging(false)}
