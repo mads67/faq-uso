@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
 
   const format = req.nextUrl.searchParams.get("format") || "csv";
 
+  // ── Formulario personal ──
   const { data: respuestas, error: rErr } = await supabaseAdmin
     .from("faq_respuestas")
     .select("id, nombre, correo, unidad, cargo, cargo_otro, sugerencias, created_at")
@@ -20,25 +21,45 @@ export async function GET(req: NextRequest) {
 
   if (rErr) return NextResponse.json({ error: rErr.message }, { status: 500 });
 
-  const ids = respuestas.map((r: { id: number }) => r.id);
+  const ids = (respuestas || []).map((r: { id: string }) => r.id);
 
   const { data: preguntas } = await supabaseAdmin
     .from("faq_preguntas")
     .select("respuesta_id, numero, pregunta, respuesta, categoria")
-    .in("respuesta_id", ids);
+    .in("respuesta_id", ids.length ? ids : ["__none__"]);
 
   const { data: documentos } = await supabaseAdmin
     .from("faq_documentos")
     .select("respuesta_id, nombre_archivo, storage_path, indicaciones, created_at")
-    .in("respuesta_id", ids);
+    .in("respuesta_id", ids.length ? ids : ["__none__"]);
 
-  const fmtDate = (d: string) => {
-    const dt = new Date(d);
-    return dt.toLocaleDateString("es-SV", {
+  // ── Cuestionario estudiantes ──
+  const { data: cuestionarios, error: cErr } = await supabaseAdmin
+    .from("cuestionario_respuestas")
+    .select("id, condicion, año_academico, medios, tramites, created_at")
+    .order("created_at", { ascending: false });
+
+  if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
+
+  type CuestionarioRow = {
+    id: string; condicion: string; año_academico: string | null;
+    medios: string[]; tramites: string[]; created_at: string;
+  };
+  const cuestionariosTyped = (cuestionarios ?? []) as unknown as CuestionarioRow[];
+
+  const cuestionarioIds = cuestionariosTyped.map((c) => c.id);
+
+  const { data: comentarios } = await supabaseAdmin
+    .from("cuestionario_comentarios")
+    .select("respuesta_id, numero, comentario")
+    .in("respuesta_id", cuestionarioIds.length ? cuestionarioIds : ["__none__"])
+    .order("numero", { ascending: true });
+
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("es-SV", {
       day: "2-digit", month: "2-digit", year: "numeric",
       hour: "2-digit", minute: "2-digit",
     });
-  };
 
   if (format === "xlsx") {
     const wb = new ExcelJS.Workbook();
@@ -58,15 +79,13 @@ export async function GET(req: NextRequest) {
     const applyStripes = (ws: ExcelJS.Worksheet, endRow: number) => {
       for (let r = 2; r <= endRow; r++) {
         if (r % 2 === 0) {
-          ws.getRow(r).eachCell((cell) => {
-            cell.fill = evenFill;
-          });
+          ws.getRow(r).eachCell((cell) => { cell.fill = evenFill; });
         }
       }
     };
 
-    // ── Sheet 1: Respondentes ──
-    const wsResp = wb.addWorksheet("Respondentes");
+    // ── Sheet 1: Respondentes (personal) ──
+    const wsResp = wb.addWorksheet("Personal — Respondentes");
     wsResp.columns = [
       { header: "ID", key: "id", width: 8 },
       { header: "Nombre", key: "nombre", width: 26 },
@@ -76,7 +95,7 @@ export async function GET(req: NextRequest) {
       { header: "Sugerencias", key: "sugerencias", width: 36 },
       { header: "Fecha envio", key: "fecha", width: 20 },
     ];
-    for (const r of respuestas) {
+    for (const r of respuestas || []) {
       wsResp.addRow({
         id: r.id,
         nombre: r.nombre,
@@ -92,7 +111,7 @@ export async function GET(req: NextRequest) {
 
     // ── Sheet 2: Preguntas ──
     if (preguntas && preguntas.length > 0) {
-      const wsPreg = wb.addWorksheet("Preguntas");
+      const wsPreg = wb.addWorksheet("Personal — Preguntas");
       wsPreg.columns = [
         { header: "ID respuesta", key: "idRespuesta", width: 14 },
         { header: "#", key: "numero", width: 6 },
@@ -115,7 +134,7 @@ export async function GET(req: NextRequest) {
 
     // ── Sheet 3: Documentos ──
     if (documentos && documentos.length > 0) {
-      const wsDoc = wb.addWorksheet("Documentos");
+      const wsDoc = wb.addWorksheet("Personal — Documentos");
       wsDoc.columns = [
         { header: "ID respuesta", key: "idRespuesta", width: 14 },
         { header: "Archivo", key: "archivo", width: 40 },
@@ -136,7 +155,7 @@ export async function GET(req: NextRequest) {
         wsDoc.addRow({
           idRespuesta: d.respuesta_id,
           archivo: d.nombre_archivo,
-          link: link,
+          link,
           indicaciones: d.indicaciones || "",
           fecha: fmtDate(d.created_at),
         });
@@ -144,7 +163,6 @@ export async function GET(req: NextRequest) {
       applyHeaderStyle(wsDoc.getRow(1));
       applyStripes(wsDoc, wsDoc.rowCount);
 
-      // Override download link cells with button style (after stripes)
       for (let r = 2; r <= wsDoc.rowCount; r++) {
         const linkCell = wsDoc.getCell(r, 3);
         if (linkCell.value) {
@@ -162,18 +180,64 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── Sheet 4: Resumen ──
+    // ── Sheet 4: Cuestionario estudiantes ──
+    if (cuestionariosTyped.length > 0) {
+      const wsCuest = wb.addWorksheet("Estudiantes — Cuestionario");
+      wsCuest.columns = [
+        { header: "ID", key: "id", width: 10 },
+        { header: "Condicion", key: "condicion", width: 14 },
+        { header: "Año academico", key: "año", width: 18 },
+        { header: "Medios de consulta", key: "medios", width: 44 },
+        { header: "Tramites consultados", key: "tramites", width: 44 },
+        { header: "Fecha envio", key: "fecha", width: 20 },
+      ];
+      for (const c of cuestionariosTyped) {
+        wsCuest.addRow({
+          id: c.id,
+          condicion: c.condicion,
+          año: c.año_academico || "",
+          medios: Array.isArray(c.medios) ? c.medios.join(" | ") : c.medios,
+          tramites: Array.isArray(c.tramites) ? c.tramites.join(" | ") : c.tramites,
+          fecha: fmtDate(c.created_at),
+        });
+      }
+      applyHeaderStyle(wsCuest.getRow(1));
+      applyStripes(wsCuest, wsCuest.rowCount);
+    }
+
+    // ── Sheet 5: Comentarios estudiantes ──
+    if (comentarios && comentarios.length > 0) {
+      const wsCom = wb.addWorksheet("Estudiantes — Comentarios");
+      wsCom.columns = [
+        { header: "ID cuestionario", key: "idCuest", width: 14 },
+        { header: "#", key: "numero", width: 6 },
+        { header: "Comentario", key: "comentario", width: 70 },
+      ];
+      for (const c of comentarios) {
+        wsCom.addRow({
+          idCuest: c.respuesta_id,
+          numero: c.numero,
+          comentario: c.comentario,
+        });
+      }
+      applyHeaderStyle(wsCom.getRow(1));
+      applyStripes(wsCom, wsCom.rowCount);
+    }
+
+    // ── Sheet 6: Resumen ──
     const wsSum = wb.addWorksheet("Resumen");
     wsSum.columns = [
-      { header: "Metrica", key: "metrica", width: 30 },
+      { header: "Metrica", key: "metrica", width: 36 },
       { header: "Valor", key: "valor", width: 12 },
     ];
-    wsSum.addRow({ metrica: "TOTAL DE ENVIOS", valor: respuestas.length });
-    wsSum.addRow({ metrica: "Total preguntas registradas", valor: (preguntas || []).length });
-    wsSum.addRow({ metrica: "Total documentos subidos", valor: (documentos || []).length });
+    wsSum.addRow({ metrica: "Formulario personal — envios", valor: (respuestas || []).length });
+    wsSum.addRow({ metrica: "Formulario personal — preguntas", valor: (preguntas || []).length });
+    wsSum.addRow({ metrica: "Formulario personal — documentos", valor: (documentos || []).length });
+    wsSum.addRow({});
+    wsSum.addRow({ metrica: "Cuestionario estudiantes — envios", valor: cuestionariosTyped.length });
+    wsSum.addRow({ metrica: "Cuestionario estudiantes — comentarios", valor: (comentarios || []).length });
     wsSum.addRow({});
     wsSum.addRow({ metrica: "Exportado el", valor: new Date().toLocaleString("es-SV") });
-    wsSum.addRow({ metrica: "Total envios", valor: respuestas.length });
     applyHeaderStyle(wsSum.getRow(1));
     for (let r = 2; r <= wsSum.rowCount; r++) {
       const cell = wsSum.getCell(r, 1);
@@ -181,27 +245,22 @@ export async function GET(req: NextRequest) {
     }
 
     const buf = await wb.xlsx.writeBuffer();
-
     return new NextResponse(buf, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="faq-export-${Date.now()}.xlsx"`,
+        "Content-Disposition": `attachment; filename="chatbot-export-${Date.now()}.xlsx"`,
       },
     });
   }
 
-  // CSV fallback
-  const csvHeaders = [
-    "ID", "Nombre", "Correo", "Unidad", "Cargo", "Sugerencias",
-    "Fecha envio",
-  ];
+  // ── CSV fallback (solo personal) ──
+  const csvHeaders = ["ID", "Nombre", "Correo", "Unidad", "Cargo", "Sugerencias", "Fecha envio"];
   const esc = (v: unknown) => {
     const s = String(v ?? "");
     return s.includes(",") || s.includes('"') || s.includes("\n")
-      ? `"${s.replace(/"/g, '""')}"`
-      : s;
+      ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const respRows = respuestas.map((r: Record<string, unknown>) => ({
+  const respRows = (respuestas || []).map((r: Record<string, unknown>) => ({
     ID: r.id,
     Nombre: r.nombre as string,
     Correo: (r.correo as string) || "",
@@ -212,17 +271,13 @@ export async function GET(req: NextRequest) {
   }));
   const csv = [
     csvHeaders.join(","),
-    ...respRows.map((r: Record<string, unknown>) =>
-      csvHeaders.map((h) => esc(r[h])).join(",")
-    ),
+    ...respRows.map((r: Record<string, unknown>) => csvHeaders.map((h) => esc(r[h])).join(",")),
   ].join("\n");
 
-  const bom = "\uFEFF";
-
-  return new NextResponse(bom + csv, {
+  return new NextResponse("﻿" + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="faq-export-${Date.now()}.csv"`,
+      "Content-Disposition": `attachment; filename="chatbot-export-${Date.now()}.csv"`,
     },
   });
 }
