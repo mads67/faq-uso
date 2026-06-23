@@ -7,12 +7,19 @@ export default async function EstudiantesPage(props: { searchParams?: Promise<{ 
     <main className="min-h-screen bg-gray-100 py-8 sm:py-10 px-3 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
 
-        {/* Header — solo mobile/tablet */}
-        <div className="mb-6 text-center lg:hidden">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+        {/* Header + intro — solo mobile/tablet */}
+        <div className="mb-6 lg:hidden">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight text-center">
             Consultas sobre trámites y servicios académicos
           </h1>
-          <p className="mt-1 text-xs text-gray-400">Universidad de Sonsonate — Dirigido a estudiantes</p>
+          <p className="mt-1 text-xs text-gray-400 text-center">Dirigido a estudiantes de la Universidad de Sonsonate</p>
+          <div className="mt-4 border-l-4 border-gray-900 pl-4 py-0.5">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Este cuestionario busca identificar las consultas más frecuentes que realizan los
+              estudiantes sobre trámites y servicios académicos. La información recopilada
+              orientará el diseño de la base de conocimientos del chatbot de atención estudiantil.
+            </p>
+          </div>
         </div>
 
         <div className="lg:grid lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr] lg:gap-10 lg:items-start">

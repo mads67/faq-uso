@@ -19,12 +19,25 @@ export default async function PersonalPage(props: { searchParams?: Promise<{ s?:
     <main className="min-h-screen bg-gray-100 py-8 sm:py-10 px-3 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
 
-        {/* Header — solo mobile/tablet */}
-        <div className="mb-6 text-center lg:hidden">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+        {/* Header + intro — solo mobile/tablet */}
+        <div className="mb-6 lg:hidden">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight text-center">
             Recolección de preguntas frecuentes
           </h1>
-          <p className="mt-1 text-xs text-gray-400">Dirigido a personal universitario</p>
+          <p className="mt-1 text-xs text-gray-400 text-center">Dirigido a personal universitario</p>
+          <div className="mt-4 border-l-4 border-gray-900 pl-4 py-0.5">
+            <p className="text-sm text-gray-600 leading-relaxed">
+              <strong className="font-semibold text-gray-900">¿Para qué sirve este formulario?</strong>{" "}
+              Se está desarrollando un{" "}
+              <strong className="font-semibold text-gray-900">chatbot de atención estudiantil</strong>{" "}
+              para la Universidad de Sonsonate que orientará a los estudiantes sobre trámites
+              y servicios académicos de forma automática. Para que el chatbot responda con precisión
+              necesita aprender de la experiencia real de cada unidad. Su aporte consiste en registrar
+              las preguntas que recibe con frecuencia junto con sus respuestas, ya sea escribiéndolas
+              directamente en el formulario o adjuntando un documento que contenga la lista de
+              preguntas y respuestas.
+            </p>
+          </div>
         </div>
 
         <div className="lg:grid lg:grid-cols-[280px_1fr] xl:grid-cols-[320px_1fr] lg:gap-10 lg:items-start">

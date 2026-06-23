@@ -472,20 +472,8 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
 
       <div className="space-y-6 sm:space-y-8">
 
-        {/* ── INTRO — oculto en desktop (se muestra en el panel izquierdo) ── */}
+        {/* ── Combinaciones válidas — oculto en desktop ── */}
         <div className="space-y-4 lg:hidden">
-          <div className="border-l-4 border-gray-900 pl-4 py-0.5">
-            <p className="text-sm text-gray-700 leading-relaxed">
-              <strong className="font-semibold text-gray-900">¿Para qué sirve este formulario?</strong>{" "}
-              Se está desarrollando un <strong className="font-semibold text-gray-900">chatbot de atención estudiantil</strong> para
-              la Universidad de Sonsonate que orientará a los estudiantes sobre trámites y servicios académicos de forma automática.
-              Para que el chatbot responda con precisión necesita aprender de la experiencia real de cada unidad.
-              Su aporte consiste en registrar las preguntas que recibe con frecuencia junto con sus respuestas,
-              ya sea escribiéndolas directamente en el formulario o adjuntando un documento
-              que contenga la lista de preguntas y respuestas.
-            </p>
-          </div>
-
           {/* Combinaciones válidas */}
           <div className="border border-gray-200 rounded p-3 sm:p-4 bg-gray-50">
             <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">
