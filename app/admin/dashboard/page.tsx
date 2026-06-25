@@ -15,7 +15,7 @@ type Documento = {
 };
 
 type Submission = {
-  id: string;
+  id: number;
   nombre: string;
   correo: string;
   unidad: string;
@@ -28,7 +28,7 @@ type Submission = {
 };
 
 type Cuestionario = {
-  id: string;
+  id: number;
   condicion: string;
   medios: string[];
   tramites: string[];
@@ -75,9 +75,9 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("personal");
   const [modalPersonal, setModalPersonal] = useState<Submission | null>(null);
   const [modalCuest, setModalCuest] = useState<Cuestionario | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nombre: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; nombre: string } | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -187,7 +187,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     if (!token) return;
     setDeleting(id);
     setError("");
@@ -792,7 +792,7 @@ export default function AdminDashboard() {
                       <tr><td colSpan={6} className="text-center py-12 text-gray-400 text-sm">No hay resultados</td></tr>
                     ) : (paginated as Submission[]).map((s) => (
                       <tr key={s.id} className="hover:bg-gray-50 transition even:bg-gray-50/60 border-l-2 border-l-transparent hover:border-l-gray-900">
-                        <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-20" title={s.id}>#{s.id.substring(0, 8)}</td>
+                        <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-20" title={String(s.id)}>#{String(s.id).substring(0, 8)}</td>
                         <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{s.nombre}</td>
                         <td className="px-4 py-3 text-gray-500 truncate max-w-48">{s.correo || "—"}</td>
                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{s.unidad}</td>
@@ -828,7 +828,7 @@ export default function AdminDashboard() {
                       <tr><td colSpan={6} className="text-center py-12 text-gray-400 text-sm">No hay resultados</td></tr>
                     ) : (paginated as Cuestionario[]).map((c) => (
                       <tr key={c.id} className="hover:bg-gray-50 transition even:bg-gray-50/60 border-l-2 border-l-transparent hover:border-l-gray-900">
-                        <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-[5rem]" title={c.id}>#{c.id.substring(0, 8)}</td>
+                        <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-[5rem]" title={String(c.id)}>#{String(c.id).substring(0, 8)}</td>
                         <td className="px-4 py-3 text-gray-900 font-medium whitespace-nowrap capitalize">{c.condicion}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs">
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 font-semibold">{c.medios.length}</span>
