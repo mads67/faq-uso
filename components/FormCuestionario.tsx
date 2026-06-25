@@ -94,7 +94,6 @@ function CheckRow({ label, checked, onChange }: { label: string; checked: boolea
       <span
         className={`mt-0.5 w-4 h-4 border rounded-sm shrink-0 flex items-center justify-center transition
           ${checked ? "bg-gray-900 border-gray-900 text-white" : "border-gray-300 bg-white group-hover:border-gray-500"}`}
-        onClick={onChange}
       >
         {checked && <IconCheck size={10} />}
       </span>
@@ -111,7 +110,6 @@ function RadioRow({ label, checked, onChange }: { label: string; checked: boolea
       <span
         className={`w-4 h-4 border rounded-full shrink-0 flex items-center justify-center transition
           ${checked ? "border-gray-900" : "border-gray-300 bg-white group-hover:border-gray-500"}`}
-        onClick={onChange}
       >
         {checked && <span className="w-2 h-2 rounded-full bg-gray-900 block" />}
       </span>
