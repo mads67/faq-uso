@@ -65,14 +65,6 @@ const IconMessageSquarePlus = ({ size = 16 }: { size?: number }) => (
 );
 // ─────────────────────────────────────────────────────────────────────────────
 
-const AÑOS = [
-  "Primer año",
-  "Segundo año",
-  "Tercer año",
-  "Cuarto año",
-  "Quinto año",
-  "Egresado",
-];
 
 const MEDIOS = [
   "Ventanilla de atención presencial",
@@ -134,7 +126,6 @@ function RadioRow({ label, checked, onChange }: { label: string; checked: boolea
 export default function FormCuestionario({ initialSession }: { initialSession?: string | null }) {
   // Sección 1
   const [condicion, setCondicion] = useState<"activo" | "egresado" | "">("");
-  const [año, setAño] = useState("");
 
   // Sección 2 — medios
   const [medios, setMedios] = useState<string[]>([]);
@@ -175,7 +166,6 @@ export default function FormCuestionario({ initialSession }: { initialSession?: 
     try {
       const st = JSON.parse(saved);
       if (st.condicion !== undefined) setCondicion(st.condicion);
-      if (st.año !== undefined) setAño(st.año);
       if (st.medios !== undefined) setMedios(st.medios);
       if (st.medioOtro !== undefined) setMedioOtro(st.medioOtro);
       if (st.tramites !== undefined) setTramites(st.tramites);
@@ -189,13 +179,13 @@ export default function FormCuestionario({ initialSession }: { initialSession?: 
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     if (!sessionId) return;
-    const draft = { condicion, año, medios, medioOtro, tramites, tramiteOtro, comentarios, nextId };
+    const draft = { condicion, medios, medioOtro, tramites, tramiteOtro, comentarios, nextId };
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
       localStorage.setItem(`cuest_draft_${sessionId}`, JSON.stringify(draft));
     }, 1500);
     return () => clearTimeout(saveTimer.current);
-  }, [sessionId, condicion, año, medios, medioOtro, tramites, tramiteOtro, comentarios, nextId]);
+  }, [sessionId, condicion, medios, medioOtro, tramites, tramiteOtro, comentarios, nextId]);
 
   // ── Helpers ──
   const toggleMedio = (m: string) =>
@@ -220,7 +210,6 @@ export default function FormCuestionario({ initialSession }: { initialSession?: 
   // ── Validación ──
   const validate = () => {
     if (!condicion) return setError("Selecciona tu condición académica actual."), false;
-    if (!año) return setError("Selecciona el año académico."), false;
     if (medios.length === 0 && !medioOtro.trim()) return setError("Selecciona al menos un medio de consulta."), false;
     if (tramites.length === 0 && !tramiteOtro.trim()) return setError("Selecciona al menos un trámite o servicio."), false;
     return true;
@@ -250,7 +239,6 @@ export default function FormCuestionario({ initialSession }: { initialSession?: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           condicion,
-          año_academico: año,
           medios: mediosFinales,
           tramites: tramitesFinales,
           comentarios: comentariosFinales,
@@ -274,8 +262,7 @@ export default function FormCuestionario({ initialSession }: { initialSession?: 
 
 
   // ── Estilos ──
-  const inputCls = "w-full px-3 py-2 border border-gray-300 text-sm bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition";
-  const labelCls = "block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1";
+const labelCls = "block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1";
   const sectionTitle = "flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-gray-900 border-b border-gray-200 pb-2 mb-4";
 
   // ── Success ──
@@ -330,33 +317,20 @@ export default function FormCuestionario({ initialSession }: { initialSession?: 
           </h2>
 
           {/* Condición académica */}
-          <div className="mb-5">
+          <div>
             <p className={labelCls}>Condición académica actual <span className="text-red-400">*</span></p>
             <div className="mt-1 space-y-0.5">
               <RadioRow
                 label="Estudiante activo (ciclo en curso)"
                 checked={condicion === "activo"}
-                onChange={() => { setCondicion("activo"); setAño(""); }}
+                onChange={() => setCondicion("activo")}
               />
               <RadioRow
                 label="Egresado en proceso de graduación"
                 checked={condicion === "egresado"}
-                onChange={() => { setCondicion("egresado"); setAño(""); }}
+                onChange={() => setCondicion("egresado")}
               />
             </div>
-          </div>
-
-          {/* Año académico */}
-          <div>
-            <label className={labelCls}>Año académico que cursa <span className="text-red-400">*</span></label>
-            <select
-              className={`${inputCls} cursor-pointer`}
-              value={año}
-              onChange={e => setAño(e.target.value)}
-            >
-              <option value="">— Selecciona —</option>
-              {AÑOS.map(a => <option key={a}>{a}</option>)}
-            </select>
           </div>
         </section>
 

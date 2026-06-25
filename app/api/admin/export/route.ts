@@ -36,13 +36,13 @@ export async function GET(req: NextRequest) {
   // ── Cuestionario estudiantes ──
   const { data: cuestionarios, error: cErr } = await supabaseAdmin
     .from("cuestionario_respuestas")
-    .select("id, condicion, año_academico, medios, tramites, created_at")
+    .select("id, condicion, medios, tramites, created_at")
     .order("created_at", { ascending: false });
 
   if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
 
   type CuestionarioRow = {
-    id: string; condicion: string; año_academico: string | null;
+    id: string; condicion: string;
     medios: string[]; tramites: string[]; created_at: string;
   };
   const cuestionariosTyped = (cuestionarios ?? []) as unknown as CuestionarioRow[];
@@ -186,7 +186,6 @@ export async function GET(req: NextRequest) {
       wsCuest.columns = [
         { header: "ID", key: "id", width: 10 },
         { header: "Condicion", key: "condicion", width: 14 },
-        { header: "Año academico", key: "año", width: 18 },
         { header: "Medios de consulta", key: "medios", width: 44 },
         { header: "Tramites consultados", key: "tramites", width: 44 },
         { header: "Fecha envio", key: "fecha", width: 20 },
@@ -195,7 +194,6 @@ export async function GET(req: NextRequest) {
         wsCuest.addRow({
           id: c.id,
           condicion: c.condicion,
-          año: c.año_academico || "",
           medios: Array.isArray(c.medios) ? c.medios.join(" | ") : c.medios,
           tramites: Array.isArray(c.tramites) ? c.tramites.join(" | ") : c.tramites,
           fecha: fmtDate(c.created_at),

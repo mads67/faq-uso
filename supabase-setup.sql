@@ -1,24 +1,23 @@
 -- ============================================================
--- FAQ USO — Setup completo desde cero
+-- FAQ USO — Schema inicial completo
+-- Universidad de Sonsonate — Chatbot de atención estudiantil
 -- Ejecuta en: Supabase → SQL Editor → New Query
 -- ============================================================
 
--- 0. Drop de tablas existentes (orden inverso por FK)
-DROP VIEW IF EXISTS faq_completo;
+-- Drop de tablas y vistas (orden inverso por FK)
+DROP VIEW  IF EXISTS faq_completo;
+DROP TABLE IF EXISTS cuestionario_comentarios;
+DROP TABLE IF EXISTS cuestionario_respuestas;
 DROP TABLE IF EXISTS faq_documentos;
 DROP TABLE IF EXISTS faq_preguntas;
 DROP TABLE IF EXISTS faq_respuestas;
 
--- 1. Función helper para auto-sync
-CREATE OR REPLACE FUNCTION public.exec_sql(sql text)
-RETURNS void AS $$
-BEGIN
-  EXECUTE sql;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- ════════════════════════════════════════════════════════════
+-- FORMULARIO PERSONAL (personal/page.tsx → FormFAQ.tsx)
+-- ════════════════════════════════════════════════════════════
 
--- 1. Tabla de respuestas
-CREATE TABLE IF NOT EXISTS faq_respuestas (
+-- 1. Respuestas del formulario personal
+CREATE TABLE faq_respuestas (
   id          bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   created_at  timestamptz NOT NULL DEFAULT now(),
   session_id  text,
@@ -30,51 +29,98 @@ CREATE TABLE IF NOT EXISTS faq_respuestas (
   sugerencias text
 );
 
--- 2. Tabla de preguntas
-CREATE TABLE IF NOT EXISTS faq_preguntas (
-  id           bigint   GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  respuesta_id bigint   NOT NULL REFERENCES faq_respuestas(id) ON DELETE CASCADE,
-  numero       smallint NOT NULL,
-  pregunta     text     NOT NULL,
-  respuesta    text     NOT NULL,
+-- 2. Preguntas asociadas a cada respuesta personal
+CREATE TABLE faq_preguntas (
+  id           bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  respuesta_id bigint      NOT NULL REFERENCES faq_respuestas(id) ON DELETE CASCADE,
+  numero       smallint    NOT NULL,
+  pregunta     text        NOT NULL,
+  respuesta    text        NOT NULL,
   categoria    text
 );
 
--- 3. Tabla de documentos
-CREATE TABLE IF NOT EXISTS faq_documentos (
+-- 3. Documentos adjuntos a cada respuesta personal
+CREATE TABLE faq_documentos (
   id             bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  created_at     timestamptz NOT NULL DEFAULT now(),
   respuesta_id   bigint      NOT NULL REFERENCES faq_respuestas(id) ON DELETE CASCADE,
   nombre_archivo text        NOT NULL,
   storage_path   text        NOT NULL,
-  indicaciones   text,
-  created_at     timestamptz NOT NULL DEFAULT now()
+  indicaciones   text
 );
 
--- 4. Bucket de storage
+-- ════════════════════════════════════════════════════════════
+-- CUESTIONARIO ESTUDIANTES (estudiantes/page.tsx → FormCuestionario.tsx)
+-- ════════════════════════════════════════════════════════════
+
+-- 4. Respuestas del cuestionario estudiantil
+CREATE TABLE cuestionario_respuestas (
+  id         bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  condicion  text        NOT NULL,
+  medios     text[]      NOT NULL,
+  tramites   text[]      NOT NULL
+);
+
+-- 5. Consultas frecuentes escritas por el estudiante (1-3 items)
+CREATE TABLE cuestionario_comentarios (
+  id           bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  respuesta_id bigint      NOT NULL REFERENCES cuestionario_respuestas(id) ON DELETE CASCADE,
+  numero       smallint    NOT NULL,
+  comentario   text        NOT NULL
+);
+
+-- ════════════════════════════════════════════════════════════
+-- INDICES
+-- ════════════════════════════════════════════════════════════
+
+CREATE INDEX ON faq_preguntas            (respuesta_id);
+CREATE INDEX ON faq_documentos           (respuesta_id);
+CREATE INDEX ON cuestionario_comentarios (respuesta_id);
+
+-- ════════════════════════════════════════════════════════════
+-- STORAGE — bucket privado para documentos adjuntos
+-- ════════════════════════════════════════════════════════════
+
 INSERT INTO storage.buckets (id, name, public)
   SELECT 'faq-documentos', 'faq-documentos', false
   WHERE NOT EXISTS (SELECT 1 FROM storage.buckets WHERE id = 'faq-documentos');
 
--- 5. Políticas RLS públicas (formulario abierto)
-ALTER TABLE faq_respuestas  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE faq_preguntas   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE faq_documentos  ENABLE ROW LEVEL SECURITY;
+-- ════════════════════════════════════════════════════════════
+-- ROW LEVEL SECURITY
+-- El formulario es publico (anon puede insertar).
+-- Las lecturas y eliminaciones se hacen desde el servidor con
+-- SUPABASE_SERVICE_ROLE_KEY, que bypasea RLS automaticamente.
+-- ════════════════════════════════════════════════════════════
 
-DROP POLICY IF EXISTS "insert_respuestas" ON faq_respuestas;
-DROP POLICY IF EXISTS "insert_preguntas"  ON faq_preguntas;
-DROP POLICY IF EXISTS "insert_documentos" ON faq_documentos;
-DROP POLICY IF EXISTS "select_respuestas" ON faq_respuestas;
-DROP POLICY IF EXISTS "select_preguntas"  ON faq_preguntas;
-DROP POLICY IF EXISTS "select_documentos" ON faq_documentos;
+ALTER TABLE faq_respuestas           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE faq_preguntas            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE faq_documentos           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cuestionario_respuestas  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cuestionario_comentarios ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "insert_respuestas" ON faq_respuestas FOR INSERT WITH CHECK (true);
-CREATE POLICY "insert_preguntas"  ON faq_preguntas  FOR INSERT WITH CHECK (true);
-CREATE POLICY "insert_documentos" ON faq_documentos FOR INSERT WITH CHECK (true);
-CREATE POLICY "select_respuestas" ON faq_respuestas FOR SELECT USING (true);
-CREATE POLICY "select_preguntas"  ON faq_preguntas  FOR SELECT USING (true);
-CREATE POLICY "select_documentos" ON faq_documentos FOR SELECT USING (true);
+-- Politicas INSERT publicas (formularios abiertos, anon puede enviar)
+CREATE POLICY "insert_faq_respuestas"
+  ON faq_respuestas FOR INSERT WITH CHECK (true);
 
--- 6. Políticas de Storage
+CREATE POLICY "insert_faq_preguntas"
+  ON faq_preguntas FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "insert_faq_documentos"
+  ON faq_documentos FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "insert_cuestionario_respuestas"
+  ON cuestionario_respuestas FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "insert_cuestionario_comentarios"
+  ON cuestionario_comentarios FOR INSERT WITH CHECK (true);
+
+-- ════════════════════════════════════════════════════════════
+-- STORAGE POLICIES — subida de archivos via signed URL
+-- ════════════════════════════════════════════════════════════
+
 DROP POLICY IF EXISTS "upload_faq_docs" ON storage.objects;
 DROP POLICY IF EXISTS "select_faq_docs" ON storage.objects;
 

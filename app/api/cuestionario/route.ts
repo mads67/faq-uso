@@ -4,11 +4,11 @@ import { supabaseAdmin } from "@/lib/supabase";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { condicion, año_academico, medios, tramites, comentarios } = body;
+    const { condicion, medios, tramites, comentarios } = body;
 
     const { data: respuesta, error: respErr } = await supabaseAdmin
       .from("cuestionario_respuestas")
-      .insert({ condicion, año_academico, medios, tramites })
+      .insert({ condicion, medios, tramites })
       .select("id")
       .single();
 

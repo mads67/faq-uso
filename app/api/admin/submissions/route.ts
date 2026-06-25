@@ -48,13 +48,13 @@ export async function GET(req: NextRequest) {
   // ── Cuestionario estudiantes ──
   const { data: cuestionariosRaw, error: cErr } = await supabaseAdmin
     .from("cuestionario_respuestas")
-    .select("id, condicion, año_academico, medios, tramites, created_at")
+    .select("id, condicion, medios, tramites, created_at")
     .order("created_at", { ascending: false });
 
   if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 });
 
   type CuestionarioRow = {
-    id: string; condicion: string; año_academico: string | null;
+    id: string; condicion: string;
     medios: string[]; tramites: string[]; created_at: string;
   };
   const cuestionarios = (cuestionariosRaw ?? []) as unknown as CuestionarioRow[];

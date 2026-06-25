@@ -30,7 +30,6 @@ type Submission = {
 type Cuestionario = {
   id: string;
   condicion: string;
-  año_academico: string | null;
   medios: string[];
   tramites: string[];
   created_at: string;
@@ -134,7 +133,7 @@ export default function AdminDashboard() {
     cuestionarios.filter((c) =>
       !debouncedSearch ||
       c.condicion.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      (c.año_academico || "").toLowerCase().includes(debouncedSearch.toLowerCase())
+      c.condicion.toLowerCase().includes(debouncedSearch.toLowerCase())
     ), [cuestionarios, debouncedSearch]);
 
   const pageSize = 10;
@@ -261,18 +260,6 @@ export default function AdminDashboard() {
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [cuestionarios]);
 
-  const chartAño = useMemo(() => {
-    const order = ["Primer año", "Segundo año", "Tercer año", "Cuarto año", "Quinto año", "Egresado"];
-    const map: Record<string, number> = {};
-    for (const c of cuestionarios) {
-      const k = c.año_academico || "No indicado";
-      map[k] = (map[k] || 0) + 1;
-    }
-    return order
-      .filter((k) => map[k])
-      .map((name) => ({ name: name.replace(" año", "°"), value: map[name] }))
-      .concat(map["No indicado"] ? [{ name: "No indicado", value: map["No indicado"] }] : []);
-  }, [cuestionarios]);
 
   const chartMedios = useMemo(() => {
     const map: Record<string, number> = {};
@@ -296,7 +283,12 @@ export default function AdminDashboard() {
     return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [cuestionarios]);
 
-  const COLORS = ["#111827", "#374151", "#6B7280", "#9CA3AF", "#D1D5DB", "#1F2937", "#4B5563"];
+  // Paleta matte para formulario personal (azules/verdes/violetas apagados)
+  const COLORS_PERSONAL = ["#5B7FA6", "#6A9E7A", "#9B7BAF", "#C4935A", "#6AAFAF", "#AF7070", "#7A8FA6", "#8FAF6A"];
+  // Paleta matte para cuestionario estudiantes (verdes/naranjas/rosados apagados)
+  const COLORS_EST = ["#6A9E7A", "#C4935A", "#AF7070", "#6AAFAF", "#9B7BAF", "#5B7FA6", "#8FAF6A", "#AF9B6A"];
+  // Pie condicion: activo=azul slate, egresado=verde sage
+  const COLORS_PIE = ["#5B7FA6", "#6A9E7A"];
 
   const ChartCard = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="bg-white border border-gray-200 p-4">
@@ -424,7 +416,6 @@ export default function AdminDashboard() {
           <div className="bg-gray-50 p-3 space-y-1.5 mb-4 text-sm">
             {[
               { label: "Condicion", value: c.condicion },
-              { label: "Año", value: c.año_academico || "—" },
               { label: "Fecha", value: new Date(c.created_at).toLocaleDateString("es-SV", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) },
             ].map(({ label, value }) => (
               <div key={label} className="flex items-start gap-2">
@@ -621,13 +612,13 @@ export default function AdminDashboard() {
 
                   <ChartCard title="Envíos por unidad">
                     {chartUnidades.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height={Math.max(120, chartUnidades.length * 32)}>
-                        <BarChart data={chartUnidades} layout="vertical" margin={{ left: 0, right: 24, top: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height={Math.max(120, chartUnidades.length * 36)}>
+                        <BarChart data={chartUnidades} layout="vertical" margin={{ left: 0, right: 28, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
                           <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10 }} />
                           <Tooltip formatter={(v) => [v, "Envíos"]} contentStyle={{ fontSize: 11 }} />
-                          <Bar dataKey="value" radius={[0, 2, 2, 0]}>
-                            {chartUnidades.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                            {chartUnidades.map((_, i) => <Cell key={i} fill={COLORS_PERSONAL[i % COLORS_PERSONAL.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -636,13 +627,13 @@ export default function AdminDashboard() {
 
                   <ChartCard title="Envíos por cargo">
                     {chartCargos.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height={Math.max(120, chartCargos.length * 32)}>
-                        <BarChart data={chartCargos} layout="vertical" margin={{ left: 0, right: 24, top: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height={Math.max(120, chartCargos.length * 36)}>
+                        <BarChart data={chartCargos} layout="vertical" margin={{ left: 0, right: 28, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
                           <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10 }} />
                           <Tooltip formatter={(v) => [v, "Envíos"]} contentStyle={{ fontSize: 11 }} />
-                          <Bar dataKey="value" radius={[0, 2, 2, 0]}>
-                            {chartCargos.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                            {chartCargos.map((_, i) => <Cell key={i} fill={COLORS_PERSONAL[(i + 2) % COLORS_PERSONAL.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -651,13 +642,13 @@ export default function AdminDashboard() {
 
                   <ChartCard title="Preguntas por categoría">
                     {chartCategorias.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height={Math.max(120, chartCategorias.length * 32)}>
-                        <BarChart data={chartCategorias} layout="vertical" margin={{ left: 0, right: 24, top: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height={Math.max(120, chartCategorias.length * 36)}>
+                        <BarChart data={chartCategorias} layout="vertical" margin={{ left: 0, right: 28, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
                           <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 10 }} />
                           <Tooltip formatter={(v) => [v, "Preguntas"]} contentStyle={{ fontSize: 11 }} />
-                          <Bar dataKey="value" radius={[0, 2, 2, 0]}>
-                            {chartCategorias.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                            {chartCategorias.map((_, i) => <Cell key={i} fill={COLORS_PERSONAL[(i + 4) % COLORS_PERSONAL.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -676,10 +667,21 @@ export default function AdminDashboard() {
 
                   <ChartCard title="Condición académica">
                     {chartCondicion.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height={200}>
+                      <ResponsiveContainer width="100%" height={220}>
                         <PieChart>
-                          <Pie data={chartCondicion} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
-                            {chartCondicion.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          <Pie
+                            data={chartCondicion}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="45%"
+                            outerRadius={78}
+                            innerRadius={36}
+                            paddingAngle={3}
+                            label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                            labelLine={false}
+                          >
+                            {chartCondicion.map((_, i) => <Cell key={i} fill={COLORS_PIE[i % COLORS_PIE.length]} />)}
                           </Pie>
                           <Tooltip formatter={(v) => [v, "Estudiantes"]} contentStyle={{ fontSize: 11 }} />
                           <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
@@ -688,30 +690,15 @@ export default function AdminDashboard() {
                     )}
                   </ChartCard>
 
-                  <ChartCard title="Año académico">
-                    {chartAño.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height={Math.max(120, chartAño.length * 36)}>
-                        <BarChart data={chartAño} layout="vertical" margin={{ left: 0, right: 24, top: 0, bottom: 0 }}>
-                          <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
-                          <YAxis type="category" dataKey="name" width={70} tick={{ fontSize: 10 }} />
-                          <Tooltip formatter={(v) => [v, "Estudiantes"]} contentStyle={{ fontSize: 11 }} />
-                          <Bar dataKey="value" radius={[0, 2, 2, 0]}>
-                            {chartAño.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-                    )}
-                  </ChartCard>
-
                   <ChartCard title="Medios de consulta más usados">
                     {chartMedios.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height={Math.max(120, chartMedios.length * 32)}>
-                        <BarChart data={chartMedios} layout="vertical" margin={{ left: 0, right: 24, top: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height={Math.max(120, chartMedios.length * 36)}>
+                        <BarChart data={chartMedios} layout="vertical" margin={{ left: 0, right: 28, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
                           <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10 }} />
                           <Tooltip formatter={(v) => [v, "Estudiantes"]} contentStyle={{ fontSize: 11 }} />
-                          <Bar dataKey="value" radius={[0, 2, 2, 0]}>
-                            {chartMedios.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                            {chartMedios.map((_, i) => <Cell key={i} fill={COLORS_EST[i % COLORS_EST.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -720,13 +707,13 @@ export default function AdminDashboard() {
 
                   <ChartCard title="Trámites más consultados">
                     {chartTramites.length === 0 ? <EmptyChart /> : (
-                      <ResponsiveContainer width="100%" height={Math.max(120, chartTramites.length * 32)}>
-                        <BarChart data={chartTramites} layout="vertical" margin={{ left: 0, right: 24, top: 0, bottom: 0 }}>
+                      <ResponsiveContainer width="100%" height={Math.max(120, chartTramites.length * 36)}>
+                        <BarChart data={chartTramites} layout="vertical" margin={{ left: 0, right: 28, top: 0, bottom: 0 }}>
                           <XAxis type="number" tick={{ fontSize: 10 }} allowDecimals={false} />
                           <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10 }} />
                           <Tooltip formatter={(v) => [v, "Estudiantes"]} contentStyle={{ fontSize: 11 }} />
-                          <Bar dataKey="value" radius={[0, 2, 2, 0]}>
-                            {chartTramites.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                          <Bar dataKey="value" radius={[0, 3, 3, 0]}>
+                            {chartTramites.map((_, i) => <Cell key={i} fill={COLORS_EST[(i + 3) % COLORS_EST.length]} />)}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -769,7 +756,7 @@ export default function AdminDashboard() {
         <div className="flex items-center gap-2">
           <input
             type="text"
-            placeholder={tab === "personal" ? "Buscar por nombre, correo o unidad..." : "Buscar por condicion o año..."}
+            placeholder={tab === "personal" ? "Buscar por nombre, correo o unidad..." : "Buscar por condicion..."}
             className="w-56 sm:w-72 px-3 py-1.5 border border-gray-300 text-xs bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -831,19 +818,18 @@ export default function AdminDashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200 bg-gray-50">
-                      {["ID", "Condicion", "Año academico", "Medios", "Tramites", "Fecha", ""].map((h, i) => (
-                        <th key={i} className={`px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider ${i === 6 ? "text-center" : "text-left"}`}>{h}</th>
+                      {["ID", "Condicion", "Medios", "Tramites", "Fecha", ""].map((h, i) => (
+                        <th key={i} className={`px-4 py-3 text-[11px] font-semibold text-gray-500 uppercase tracking-wider ${i === 5 ? "text-center" : "text-left"}`}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {(paginated as Cuestionario[]).length === 0 ? (
-                      <tr><td colSpan={7} className="text-center py-12 text-gray-400 text-sm">No hay resultados</td></tr>
+                      <tr><td colSpan={6} className="text-center py-12 text-gray-400 text-sm">No hay resultados</td></tr>
                     ) : (paginated as Cuestionario[]).map((c) => (
                       <tr key={c.id} className="hover:bg-gray-50 transition even:bg-gray-50/60 border-l-2 border-l-transparent hover:border-l-gray-900">
                         <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-[5rem]" title={c.id}>#{c.id.substring(0, 8)}</td>
                         <td className="px-4 py-3 text-gray-900 font-medium whitespace-nowrap capitalize">{c.condicion}</td>
-                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{c.año_academico || "—"}</td>
                         <td className="px-4 py-3 text-gray-500 text-xs">
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 text-gray-600 font-semibold">{c.medios.length}</span>
                         </td>
