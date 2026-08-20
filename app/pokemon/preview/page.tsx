@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import PokemonCardPreview from "@/components/PokemonCardPreview";
 import { renderPokemonCard, type PokemonData } from "@/lib/pokemonCard";
@@ -27,7 +27,7 @@ const IconAlertCircle = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-export default function PokemonPreviewPage() {
+function PokemonPreviewContent() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(() => searchParams.get("id") || searchParams.get("name") || "");
   const [pokemon, setPokemon] = useState<PokemonData | null>(null);
@@ -161,5 +161,13 @@ export default function PokemonPreviewPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function PokemonPreviewPage() {
+  return (
+    <Suspense fallback={null}>
+      <PokemonPreviewContent />
+    </Suspense>
   );
 }
