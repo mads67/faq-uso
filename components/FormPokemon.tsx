@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { renderPokemonCard, type PokemonData } from "@/lib/pokemonCard";
+import { renderPokemonCard, downloadDataUrlImage, type PokemonData } from "@/lib/pokemonCard";
 import PokemonCardPreview from "@/components/PokemonCardPreview";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -383,13 +383,7 @@ export default function FormPokemon({ initialSession }: { initialSession?: strin
   }, [success, pokemon, buildCard]);
 
   const downloadCard = () => {
-    if (!cardUrl) return;
-    const a = document.createElement("a");
-    a.href = cardUrl;
-    a.download = `tarjeta-${pokemon?.name || "pokemon"}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    downloadDataUrlImage(cardUrl, `tarjeta-${pokemon?.name || "pokemon"}.png`).catch(() => {});
   };
 
   // ── Estilos ──

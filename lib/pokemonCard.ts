@@ -780,3 +780,45 @@ export async function renderPokemonCard(
 
   return canvas.toDataURL("image/png");
 }
+
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [header, base64] = dataUrl.split(",");
+  const mime = /data:(.*?);base64/.exec(header)?.[1] || "image/png";
+  const bytes = atob(base64);
+  const buf = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) buf[i] = bytes.charCodeAt(i);
+  return new File([buf], filename, { type: mime });
+}
+
+// iOS Safari (y varios navegadores in-app de Android) IGNORAN el atributo
+// "download" de <a>: en vez de guardar el archivo, abren la imagen en una
+// pestaña nueva o no hacen nada visible — por eso "no se está generando ni
+// guardando la imagen" al probar en iPhone, aunque en desktop funcione bien.
+// La vía correcta en esos navegadores es la Web Share API con un File real
+// (el share sheet nativo de iOS/Android trae la opción "Guardar imagen").
+// Se intenta primero esa vía; si no está disponible (desktop, navegadores
+// viejos), se usa el <a download> de siempre.
+export async function downloadDataUrlImage(dataUrl: string, filename: string): Promise<void> {
+  if (!dataUrl) throw new Error("La imagen todavía no está lista");
+
+  const file = dataUrlToFile(dataUrl, filename);
+  const nav = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
+  if (nav.canShare?.({ files: [file] }) && navigator.share) {
+    try {
+      await navigator.share({ files: [file] });
+      return;
+    } catch (err) {
+      // El usuario canceló el share sheet: no es un error real, no hacer nada.
+      if (err instanceof Error && err.name === "AbortError") return;
+      // Cualquier otro fallo (share no soportado en la práctica pese a canShare,
+      // etc.) cae al método <a download> de abajo en vez de fallar en silencio.
+    }
+  }
+
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}

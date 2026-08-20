@@ -3,7 +3,7 @@
 import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import PokemonCardPreview from "@/components/PokemonCardPreview";
-import { renderPokemonCard, type PokemonData } from "@/lib/pokemonCard";
+import { renderPokemonCard, downloadDataUrlImage, type PokemonData } from "@/lib/pokemonCard";
 
 const IconSpinner = ({ size = 14 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
@@ -80,13 +80,8 @@ function PokemonPreviewContent() {
   }, [pokemon]);
 
   const downloadCard = () => {
-    if (!cardUrl || !pokemon) return;
-    const a = document.createElement("a");
-    a.href = cardUrl;
-    a.download = `preview-${pokemon.name}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    if (!pokemon) return;
+    downloadDataUrlImage(cardUrl, `preview-${pokemon.name}.png`).catch(() => {});
   };
 
   return (
