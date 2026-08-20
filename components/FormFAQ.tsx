@@ -546,7 +546,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
               <div className="mt-3 sm:mt-0">
                 <label className={labelCls}>Cargo <span className="text-red-400">*</span></label>
                 <select ref={cargoRef} data-field="cargo" className={`${inputCls} cursor-pointer`} value={cargo} onChange={e => { setCargo(e.target.value); setCargoOtro(""); }}>
-                  <option value="">— Selecciona —</option>
+                  <option value="">Selecciona una opción</option>
                   {CARGOS.map(o => <option key={o}>{o}</option>)}
                 </select>
                 {cargo === "Otro" && (
@@ -609,7 +609,7 @@ export default function FormFAQ({ initialSession }: { initialSession?: string | 
                     <label className={labelCls}>Categoria</label>
                     <select className="w-full px-3 py-1.5 border border-gray-300 text-sm bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition cursor-pointer text-gray-500"
                       value={q.categoria} onChange={e => updatePregunta(q.id, "categoria", e.target.value)}>
-                      <option value="">— Selecciona —</option>
+                      <option value="">Selecciona una opción</option>
                       {CATS.map(c => <option key={c}>{c}</option>)}
                     </select>
                     {q.categoria === "Otra" && (

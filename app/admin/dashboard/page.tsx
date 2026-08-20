@@ -607,7 +607,7 @@ export default function AdminDashboard() {
             {/* Formulario personal */}
             {submissions.length > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Análisis — Formulario personal</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Análisis: Formulario personal</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
                   <ChartCard title="Envíos por unidad">
@@ -662,7 +662,7 @@ export default function AdminDashboard() {
             {/* Cuestionario estudiantes */}
             {cuestionarios.length > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Análisis — Cuestionario estudiantes</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Análisis: Cuestionario estudiantes</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
                   <ChartCard title="Condición académica">
@@ -794,7 +794,7 @@ export default function AdminDashboard() {
                       <tr key={s.id} className="hover:bg-gray-50 transition even:bg-gray-50/60 border-l-2 border-l-transparent hover:border-l-gray-900">
                         <td className="px-4 py-3 text-gray-400 font-mono text-xs truncate max-w-20" title={String(s.id)}>#{String(s.id).substring(0, 8)}</td>
                         <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{s.nombre}</td>
-                        <td className="px-4 py-3 text-gray-500 truncate max-w-48">{s.correo || "—"}</td>
+                        <td className="px-4 py-3 text-gray-500 truncate max-w-48">{s.correo || "Sin correo"}</td>
                         <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{s.unidad}</td>
                         <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{fmtDate(s.created_at)}</td>
                         <td className="px-4 py-3 text-center whitespace-nowrap">

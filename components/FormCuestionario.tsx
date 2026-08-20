@@ -311,7 +311,7 @@ const labelCls = "block text-[11px] font-semibold text-gray-500 uppercase tracki
         <section>
           <h2 className={sectionTitle}>
             <IconUser size={16} />
-            Sección 1 — Datos generales
+            Sección 1: Datos generales
           </h2>
 
           {/* Condición académica */}
@@ -336,7 +336,7 @@ const labelCls = "block text-[11px] font-semibold text-gray-500 uppercase tracki
         <section>
           <h2 className={sectionTitle}>
             <IconClipboard size={16} />
-            Sección 2 — Consultas sobre trámites y servicios
+            Sección 2: Consultas sobre trámites y servicios
           </h2>
 
           {/* Medios de consulta */}

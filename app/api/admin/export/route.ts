@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
     };
 
     // ── Sheet 1: Respondentes (personal) ──
-    const wsResp = wb.addWorksheet("Personal — Respondentes");
+    const wsResp = wb.addWorksheet("Personal: Respondentes");
     wsResp.columns = [
       { header: "ID", key: "id", width: 8 },
       { header: "Nombre", key: "nombre", width: 26 },
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
 
     // ── Sheet 2: Preguntas ──
     if (preguntas && preguntas.length > 0) {
-      const wsPreg = wb.addWorksheet("Personal — Preguntas");
+      const wsPreg = wb.addWorksheet("Personal: Preguntas");
       wsPreg.columns = [
         { header: "ID respuesta", key: "idRespuesta", width: 14 },
         { header: "#", key: "numero", width: 6 },
@@ -134,7 +134,7 @@ export async function GET(req: NextRequest) {
 
     // ── Sheet 3: Documentos ──
     if (documentos && documentos.length > 0) {
-      const wsDoc = wb.addWorksheet("Personal — Documentos");
+      const wsDoc = wb.addWorksheet("Personal: Documentos");
       wsDoc.columns = [
         { header: "ID respuesta", key: "idRespuesta", width: 14 },
         { header: "Archivo", key: "archivo", width: 40 },
@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
 
     // ── Sheet 4: Cuestionario estudiantes ──
     if (cuestionariosTyped.length > 0) {
-      const wsCuest = wb.addWorksheet("Estudiantes — Cuestionario");
+      const wsCuest = wb.addWorksheet("Estudiantes: Cuestionario");
       wsCuest.columns = [
         { header: "ID", key: "id", width: 10 },
         { header: "Condicion", key: "condicion", width: 14 },
@@ -205,7 +205,7 @@ export async function GET(req: NextRequest) {
 
     // ── Sheet 5: Comentarios estudiantes ──
     if (comentarios && comentarios.length > 0) {
-      const wsCom = wb.addWorksheet("Estudiantes — Comentarios");
+      const wsCom = wb.addWorksheet("Estudiantes: Comentarios");
       wsCom.columns = [
         { header: "ID cuestionario", key: "idCuest", width: 14 },
         { header: "#", key: "numero", width: 6 },
@@ -228,12 +228,12 @@ export async function GET(req: NextRequest) {
       { header: "Metrica", key: "metrica", width: 36 },
       { header: "Valor", key: "valor", width: 12 },
     ];
-    wsSum.addRow({ metrica: "Formulario personal — envios", valor: (respuestas || []).length });
-    wsSum.addRow({ metrica: "Formulario personal — preguntas", valor: (preguntas || []).length });
-    wsSum.addRow({ metrica: "Formulario personal — documentos", valor: (documentos || []).length });
+    wsSum.addRow({ metrica: "Formulario personal: envios", valor: (respuestas || []).length });
+    wsSum.addRow({ metrica: "Formulario personal: preguntas", valor: (preguntas || []).length });
+    wsSum.addRow({ metrica: "Formulario personal: documentos", valor: (documentos || []).length });
     wsSum.addRow({});
-    wsSum.addRow({ metrica: "Cuestionario estudiantes — envios", valor: cuestionariosTyped.length });
-    wsSum.addRow({ metrica: "Cuestionario estudiantes — comentarios", valor: (comentarios || []).length });
+    wsSum.addRow({ metrica: "Cuestionario estudiantes: envios", valor: cuestionariosTyped.length });
+    wsSum.addRow({ metrica: "Cuestionario estudiantes: comentarios", valor: (comentarios || []).length });
     wsSum.addRow({});
     wsSum.addRow({ metrica: "Exportado el", valor: new Date().toLocaleString("es-SV") });
     applyHeaderStyle(wsSum.getRow(1));

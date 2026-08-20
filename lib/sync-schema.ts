@@ -72,6 +72,48 @@ const TABLES: Record<string, { create: string; columns: ColumnDef[] }> = {
       { name: "created_at", definition: "timestamptz NOT NULL DEFAULT now()" },
     ],
   },
+  cuestionario_respuestas: {
+    create: `
+      CREATE TABLE IF NOT EXISTS public.cuestionario_respuestas (
+        id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        condicion     text NOT NULL,
+        medios        text[] NOT NULL,
+        tramites      text[] NOT NULL,
+        pokemon_id    integer,
+        pokemon_name  text,
+        trainer_name  text
+      );
+    `,
+    columns: [
+      { name: "id", definition: "bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY" },
+      { name: "created_at", definition: "timestamptz NOT NULL DEFAULT now()" },
+      { name: "condicion", definition: "text NOT NULL" },
+      { name: "medios", definition: "text[] NOT NULL" },
+      { name: "tramites", definition: "text[] NOT NULL" },
+      { name: "pokemon_id", definition: "integer" },
+      { name: "pokemon_name", definition: "text" },
+      { name: "trainer_name", definition: "text" },
+    ],
+  },
+  cuestionario_comentarios: {
+    create: `
+      CREATE TABLE IF NOT EXISTS public.cuestionario_comentarios (
+        id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        created_at   timestamptz NOT NULL DEFAULT now(),
+        respuesta_id bigint NOT NULL REFERENCES public.cuestionario_respuestas(id) ON DELETE CASCADE,
+        numero       smallint NOT NULL,
+        comentario   text NOT NULL
+      );
+    `,
+    columns: [
+      { name: "id", definition: "bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY" },
+      { name: "created_at", definition: "timestamptz NOT NULL DEFAULT now()" },
+      { name: "respuesta_id", definition: "bigint NOT NULL REFERENCES public.cuestionario_respuestas(id) ON DELETE CASCADE" },
+      { name: "numero", definition: "smallint NOT NULL" },
+      { name: "comentario", definition: "text NOT NULL" },
+    ],
+  },
 };
 
 let synced = false;

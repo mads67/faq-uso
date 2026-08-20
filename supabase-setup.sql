@@ -56,11 +56,14 @@ CREATE TABLE faq_documentos (
 
 -- 4. Respuestas del cuestionario estudiantil
 CREATE TABLE cuestionario_respuestas (
-  id         bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  condicion  text        NOT NULL,
-  medios     text[]      NOT NULL,
-  tramites   text[]      NOT NULL
+  id            bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  condicion     text        NOT NULL,
+  medios        text[]      NOT NULL,
+  tramites      text[]      NOT NULL,
+  pokemon_id    integer,
+  pokemon_name  text,
+  trainer_name  text
 );
 
 -- 5. Consultas frecuentes escritas por el estudiante (1-3 items)
