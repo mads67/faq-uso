@@ -33,6 +33,7 @@ function PokemonPreviewContent() {
   const [pokemon, setPokemon] = useState<PokemonData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [trainerName, setTrainerName] = useState("");
   const [cardUrl, setCardUrl] = useState("");
   const [buildingCard, setBuildingCard] = useState(false);
 
@@ -66,18 +67,21 @@ function PokemonPreviewContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Se regenera también al escribir el nombre (con debounce, para no volver a
+  // dibujar el canvas en cada tecla).
   useEffect(() => {
     if (!pokemon) return;
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- arranca el render async del canvas al cambiar de Pokémon
-    setBuildingCard(true);
-    const formUrl = `${window.location.origin}/pokemon`;
-    renderPokemonCard(pokemon, "Entrenador Anónimo", formUrl)
-      .then((url) => { if (!cancelled) setCardUrl(url); })
-      .catch(() => { if (!cancelled) setCardUrl(""); })
-      .finally(() => { if (!cancelled) setBuildingCard(false); });
-    return () => { cancelled = true; };
-  }, [pokemon]);
+    const t = setTimeout(() => {
+      setBuildingCard(true);
+      const formUrl = `${window.location.origin}/pokemon`;
+      renderPokemonCard(pokemon, trainerName.trim() || "Entrenador Anónimo", formUrl)
+        .then((url) => { if (!cancelled) setCardUrl(url); })
+        .catch(() => { if (!cancelled) setCardUrl(""); })
+        .finally(() => { if (!cancelled) setBuildingCard(false); });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [pokemon, trainerName]);
 
   const downloadCard = () => {
     if (!pokemon) return;
@@ -138,11 +142,21 @@ function PokemonPreviewContent() {
           {pokemon && (
             <>
               <PokemonCardPreview pokemon={pokemon} />
+              <div className="max-w-xs mx-auto mt-5">
+                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-1.5">Nombre personalizado (opcional)</label>
+                <input
+                  className="w-full px-3 py-2 border border-gray-300 text-sm bg-white focus:outline-none focus:border-gray-900 focus:ring-[1.5px] focus:ring-gray-900/10 transition rounded"
+                  placeholder="Ej. Ash Ketchum"
+                  maxLength={40}
+                  value={trainerName}
+                  onChange={e => setTrainerName(e.target.value)}
+                />
+              </div>
               <button
                 type="button"
                 onClick={downloadCard}
                 disabled={buildingCard || !cardUrl}
-                className="w-full mt-5 inline-flex items-center justify-center gap-2 py-3 bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 active:scale-[.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition cursor-pointer rounded"
+                className="w-full mt-3 inline-flex items-center justify-center gap-2 py-3 bg-gray-900 text-white font-medium text-sm hover:bg-gray-800 active:scale-[.98] disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition cursor-pointer rounded"
               >
                 {buildingCard ? <><IconSpinner size={14} /> Generando imagen...</> : <><IconDownload size={15} /> Descargar esta vista previa</>}
               </button>

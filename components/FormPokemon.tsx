@@ -378,9 +378,15 @@ export default function FormPokemon({ initialSession }: { initialSession?: strin
     }
   }, [pokemon, trainerName]);
 
+  // Se regenera también al escribir el nombre (con debounce, para no volver a
+  // dibujar el canvas en cada tecla) — antes solo dependia de [success, pokemon],
+  // así que el nombre nunca se reflejaba en la tarjeta descargada aunque el
+  // input lo mostrara en pantalla.
   useEffect(() => {
-    if (success && pokemon) buildCard();
-  }, [success, pokemon, buildCard]);
+    if (!success || !pokemon) return;
+    const t = setTimeout(() => buildCard(), 400);
+    return () => clearTimeout(t);
+  }, [success, pokemon, trainerName, buildCard]);
 
   const downloadCard = () => {
     downloadDataUrlImage(cardUrl, `tarjeta-${pokemon?.name || "pokemon"}.png`).catch(() => {});
